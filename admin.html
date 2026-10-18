@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel - ABC Company</title>
+<title>Admin Panel - Crypto World</title>
 <style>
   * { box-sizing:border-box; }
   body { margin:0; font-family:Arial, sans-serif; background:#0b0e11; color:#eaecef; }
@@ -13,8 +13,8 @@
 
   .tabs { display:flex; overflow-x:auto; border-bottom:1px solid #2b3139; background:#161a1e; }
   .tabs button {
-    flex:1; min-width:90px; background:transparent; border:none; color:#848e9c;
-    padding:14px 8px; font-size:13px; font-weight:bold; cursor:pointer; border-bottom:2px solid transparent;
+    flex:1; min-width:100px; background:transparent; border:none; color:#848e9c;
+    padding:14px 8px; font-size:13px; font-weight:bold; cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap;
   }
   .tabs button.active { color:#f0b90b; border-bottom-color:#f0b90b; }
 
@@ -62,11 +62,83 @@
   .settings-row label { font-size:10.5px; color:#848e9c; display:block; margin-bottom:3px; }
   .settings-row input { width:100%; background:#1e2329; border:1px solid #2b3139; color:#eaecef; padding:6px; border-radius:5px; font-size:12px; }
 
+  /* ================= COIN SETTINGS ================= */
+  .coin-card {
+    background:#161a1e; border:1px solid #2b3139; border-radius:12px; padding:16px;
+    margin-bottom:14px;
+  }
+  .coin-header {
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;
+    gap:10px; flex-wrap:wrap;
+  }
+  .coin-title {
+    display:flex; align-items:center; gap:10px;
+    font-size:15px; font-weight:800; color:#f0b90b;
+  }
+  .coin-title img { width:28px; height:28px; }
+  .delete-coin-btn {
+    background:rgba(246,70,93,0.15); color:#f6465d;
+    border:1px solid rgba(246,70,93,0.3); padding:6px 12px;
+    border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;
+  }
+  .delete-coin-btn:active { transform:scale(0.95); }
+
+  .form-grid {
+    display:grid; grid-template-columns:1fr 1fr; gap:12px;
+  }
+  .form-field { display:flex; flex-direction:column; gap:5px; }
+  .form-field.full { grid-column:1 / -1; }
+  .form-field label {
+    font-size:11px; color:#848e9c; font-weight:700; text-transform:uppercase; letter-spacing:0.3px;
+  }
+  .form-field input {
+    background:#1e2329; border:1px solid #2b3139; color:#eaecef;
+    padding:10px 12px; border-radius:8px; font-size:13px; font-family:inherit;
+    outline:none;
+  }
+  .form-field input:focus { border-color:#f0b90b; }
+  .form-field input::placeholder { color:#5b6169; }
+
+  .qr-preview {
+    display:flex; align-items:center; gap:12px;
+    background:#0b0e11; padding:10px; border-radius:8px; margin-top:5px;
+  }
+  .qr-preview img {
+    width:60px; height:60px; background:#fff; border-radius:6px; padding:4px; flex-shrink:0;
+  }
+  .qr-preview .qr-info { font-size:11px; color:#848e9c; word-break:break-all; }
+
+  .add-coin-btn {
+    width:100%; padding:14px; background:linear-gradient(90deg, #f0b90b, #d97706);
+    color:#202630; border:none; border-radius:10px; font-size:14px; font-weight:800;
+    cursor:pointer; margin-top:10px;
+  }
+  .add-coin-btn:active { transform:scale(0.98); }
+
+  .save-all-btn {
+    position:sticky; bottom:0; width:100%; padding:16px;
+    background:linear-gradient(90deg, #0ecb81, #059669); color:#fff;
+    border:none; font-size:15px; font-weight:800; cursor:pointer;
+    border-radius:10px 10px 0 0; margin-top:16px;
+    box-shadow:0 -4px 12px rgba(0,0,0,0.4);
+  }
+  .save-all-btn:active { transform:scale(0.98); }
+
   .gate { display:flex; align-items:center; justify-content:center; height:100vh; flex-direction:column; gap:12px; text-align:center; padding:20px; }
   .gate h2 { color:#f6465d; margin:0; }
   .gate p { color:#848e9c; font-size:13px; max-width:320px; }
 
   .empty-msg { text-align:center; color:#848e9c; padding:30px; font-size:13px; }
+
+  .toast {
+    position:fixed; top:20px; left:50%; transform:translateX(-50%);
+    background:#1e2329; color:#eaecef; padding:14px 22px;
+    border-radius:10px; font-size:13.5px; font-weight:700;
+    z-index:99999; display:none; border:1px solid #2b3139;
+  }
+  .toast.success { border-color:#0ecb81; color:#0ecb81; }
+  .toast.error { border-color:#f6465d; color:#f6465d; }
+  .toast.show { display:block; }
 </style>
 </head>
 <body>
@@ -89,6 +161,7 @@
     <button class="tab-btn" data-tab="trades">Trades</button>
     <button class="tab-btn" data-tab="deposits">Deposits</button>
     <button class="tab-btn" data-tab="withdrawals">Withdrawals</button>
+    <button class="tab-btn" data-tab="coins">Coins & QR</button>
     <button class="tab-btn" data-tab="settings">Settings</button>
   </div>
 
@@ -144,10 +217,24 @@
     </table>
   </div>
 
+  <!-- ================= COINS & QR ================= -->
+  <div class="panel" id="panel-coins">
+    <div class="toolbar">
+      <span class="count-label">Manage deposit coins — Address, QR, Network</span>
+      <button class="refresh-btn" onclick="loadCoins()">Refresh</button>
+    </div>
+    <div id="coins-container"></div>
+    <button class="add-coin-btn" onclick="addNewCoin()">
+      ➕ Add New Coin
+    </button>
+    <button class="save-all-btn" onclick="saveAllCoins()">
+      💾 Save All Coins
+    </button>
+  </div>
+
   <!-- SETTINGS -->
   <div class="panel" id="panel-settings">
     <div class="toolbar">
-      <input type="text" class="search-box" id="settings-search" placeholder="Search by Account ID..." disabled title="Settings aren't tied to a specific user">
       <span class="count-label">Trade duration &amp; return % (used by trade.html)</span>
       <button class="refresh-btn" onclick="loadSettings()">Refresh</button>
     </div>
@@ -157,11 +244,12 @@
   </div>
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-// ⚠️ CHANGE THIS to the exact email you will log in with to access the admin panel.
 const ADMIN_EMAIL = "mrtiger6662@gmail.com";
 
 const firebaseConfig = {
@@ -176,10 +264,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 firebase.auth().onAuthStateChanged(user => {
-  if (!user) {
-    window.location.href = 'login.html';
-    return;
-  }
+  if (!user) { window.location.href = 'login.html'; return; }
   if ((user.email || '').toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
     document.getElementById('gate-current-email').textContent = user.email || '(no email)';
     document.getElementById('gate-expected-email').textContent = ADMIN_EMAIL;
@@ -200,18 +285,22 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'trades') loadTrades();
     if (btn.dataset.tab === 'deposits') loadDeposits();
     if (btn.dataset.tab === 'withdrawals') loadWithdrawals();
+    if (btn.dataset.tab === 'coins') loadCoins();
     if (btn.dataset.tab === 'settings') loadSettings();
   });
 });
 
-function fmtDate(ts) {
-  if (!ts || !ts.toDate) return '-';
-  return ts.toDate().toLocaleString();
+// ================= TOAST =================
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.className = 'toast ' + type, 3000);
 }
 
 // ================= USERS =================
-let allUsers = []; // cached list of every loaded user, used for client-side search
-let userLookup = {}; // uid -> { accountId, email, identifier }, used by Trades/Deposits/Withdrawals
+let allUsers = [];
+let userLookup = {};
 
 async function loadUsers() {
   const tbody = document.getElementById('users-tbody');
@@ -234,7 +323,6 @@ async function loadUsers() {
       userLookup[doc.id] = u;
     });
     renderUsers(allUsers);
-    // Re-apply whatever search text is already in the box (e.g. after Refresh)
     const searchVal = document.getElementById('user-search').value;
     if (searchVal.trim()) filterUsers();
   } catch (e) {
@@ -269,14 +357,9 @@ function renderUsers(list) {
   });
 }
 
-// Matches the search box text against Account ID (UID), email, and identifier
-// (identifier is whatever the user signed up with — email or phone number).
 function filterUsers() {
   const q = document.getElementById('user-search').value.trim().toLowerCase();
-  if (!q) {
-    renderUsers(allUsers);
-    return;
-  }
+  if (!q) { renderUsers(allUsers); return; }
   const filtered = allUsers.filter(u =>
     u.uid.toLowerCase().includes(q) ||
     u.accountId.toLowerCase().includes(q) ||
@@ -285,7 +368,6 @@ function filterUsers() {
   );
   renderUsers(filtered);
 }
-
 document.getElementById('user-search').addEventListener('input', filterUsers);
 
 async function saveUserBalance(uid) {
@@ -295,15 +377,12 @@ async function saveUserBalance(uid) {
   try {
     await db.collection('users').doc(uid).update({ balance: val });
     loadUsers();
-  } catch (e) {
-    alert('Failed: ' + e.message);
-  }
+  } catch (e) { alert('Failed: ' + e.message); }
 }
 
 async function saveWinRate(uid) {
   const input = document.getElementById('winrate-' + uid);
   const raw = input.value.trim();
-
   if (raw === '') {
     try {
       await db.collection('users').doc(uid).update({ winRatePercent: firebase.firestore.FieldValue.delete() });
@@ -311,7 +390,6 @@ async function saveWinRate(uid) {
     } catch (e) { alert('Failed: ' + e.message); }
     return;
   }
-
   const val = parseInt(raw);
   if (isNaN(val) || val < 1 || val > 100) {
     alert('Enter a number between 1 and 100, or leave blank to turn it off.');
@@ -320,9 +398,7 @@ async function saveWinRate(uid) {
   try {
     await db.collection('users').doc(uid).set({ winRatePercent: val }, { merge: true });
     loadUsers();
-  } catch (e) {
-    alert('Failed: ' + e.message);
-  }
+  } catch (e) { alert('Failed: ' + e.message); }
 }
 
 // ================= TRADES =================
@@ -393,9 +469,7 @@ async function forceTrade(tradeId, outcome) {
   try {
     await db.collection('trades').doc(tradeId).update({ forcedResult: outcome });
     loadTrades();
-  } catch (e) {
-    alert('Failed: ' + e.message);
-  }
+  } catch (e) { alert('Failed: ' + e.message); }
 }
 
 // ================= DEPOSITS =================
@@ -471,18 +545,14 @@ async function approveDeposit(depositId, uid) {
       creditedUSDT: amount
     });
     loadDeposits();
-  } catch (e) {
-    alert('Failed: ' + e.message);
-  }
+  } catch (e) { alert('Failed: ' + e.message); }
 }
 
 async function rejectDeposit(depositId) {
   try {
     await db.collection('deposits').doc(depositId).update({ status: 'rejected' });
     loadDeposits();
-  } catch (e) {
-    alert('Failed: ' + e.message);
-  }
+  } catch (e) { alert('Failed: ' + e.message); }
 }
 
 // ================= WITHDRAWALS =================
@@ -549,9 +619,7 @@ async function approveWithdrawal(withdrawalId) {
   try {
     await db.collection('withdrawals').doc(withdrawalId).update({ status: 'approved' });
     loadWithdrawals();
-  } catch (e) {
-    alert('Failed: ' + e.message);
-  }
+  } catch (e) { alert('Failed: ' + e.message); }
 }
 
 async function rejectWithdrawal(withdrawalId, uid, amount) {
@@ -561,8 +629,162 @@ async function rejectWithdrawal(withdrawalId, uid, amount) {
     }, { merge: true });
     await db.collection('withdrawals').doc(withdrawalId).update({ status: 'rejected' });
     loadWithdrawals();
+  } catch (e) { alert('Failed: ' + e.message); }
+}
+
+// ================= COINS & QR =================
+let coinsList = [];
+
+async function loadCoins() {
+  const container = document.getElementById('coins-container');
+  container.innerHTML = '<div class="empty-msg">Loading...</div>';
+  try {
+    const doc = await db.collection('settings').doc('depositCoins').get();
+    if (doc.exists && Array.isArray(doc.data().coins)) {
+      coinsList = doc.data().coins;
+    } else {
+      // Default coins
+      coinsList = [
+        { symbol: 'USDT', name: 'Tether', icon: 'usdt', network: 'Ethereum (ERC20)', address: '0xAf26e02916bfbc0E49CE82A253988058259fe71E', qrUrl: '' },
+        { symbol: 'BTC', name: 'Bitcoin', icon: 'btc', network: 'Bitcoin (BTC)', address: 'bc1q8sfwmlkqfpmeuu2elnpet95wahpg9f96vqr6x9', qrUrl: '' },
+        { symbol: 'ETH', name: 'Ethereum', icon: 'eth', network: 'Ethereum (ERC20)', address: '0xAf26e02916bfbc0E49CE82A253988058259fe71E', qrUrl: '' },
+        { symbol: 'USDC', name: 'USD Coin', icon: 'usdc', network: 'Ethereum (ERC20)', address: '0xAf26e02916bfbc0E49CE82A253988058259fe71E', qrUrl: '' },
+        { symbol: 'SOL', name: 'Solana', icon: 'sol', network: 'Solana', address: 'Dt2h9YR127SM2kTiPS3keir1fqYN1qp9ZH2MNpAEHm6P', qrUrl: '' }
+      ];
+    }
+    renderCoins();
   } catch (e) {
-    alert('Failed: ' + e.message);
+    container.innerHTML = `<div class="empty-msg">Failed to load: ${e.message}</div>`;
+  }
+}
+
+function iconUrl(icon) {
+  return 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/' + icon + '.png';
+}
+
+function renderCoins() {
+  const container = document.getElementById('coins-container');
+  container.innerHTML = '';
+
+  coinsList.forEach((coin, i) => {
+    const card = document.createElement('div');
+    card.className = 'coin-card';
+    
+    const displayQr = coin.qrUrl || ('https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=' + encodeURIComponent(coin.address || 'NotSet'));
+    
+    card.innerHTML = `
+      <div class="coin-header">
+        <div class="coin-title">
+          <img src="${iconUrl(coin.icon || coin.symbol.toLowerCase())}" alt="${coin.symbol}">
+          ${coin.symbol} — ${coin.name}
+        </div>
+        <button class="delete-coin-btn" onclick="deleteCoin(${i})">
+          🗑️ Delete
+        </button>
+      </div>
+      
+      <div class="form-grid">
+        <div class="form-field">
+          <label>Symbol</label>
+          <input type="text" id="coin-symbol-${i}" value="${coin.symbol || ''}" placeholder="USDT">
+        </div>
+        <div class="form-field">
+          <label>Name</label>
+          <input type="text" id="coin-name-${i}" value="${coin.name || ''}" placeholder="Tether">
+        </div>
+        <div class="form-field">
+          <label>Icon Code</label>
+          <input type="text" id="coin-icon-${i}" value="${coin.icon || ''}" placeholder="usdt">
+        </div>
+        <div class="form-field">
+          <label>Network</label>
+          <input type="text" id="coin-network-${i}" value="${coin.network || ''}" placeholder="Ethereum (ERC20)">
+        </div>
+        <div class="form-field full">
+          <label>Wallet Address</label>
+          <input type="text" id="coin-address-${i}" value="${coin.address || ''}" placeholder="0x...">
+        </div>
+        <div class="form-field full">
+          <label>QR Code Image URL (Optional — leave empty to auto-generate)</label>
+          <input type="text" id="coin-qrUrl-${i}" value="${coin.qrUrl || ''}" placeholder="https://... (leave empty to auto-generate)">
+        </div>
+      </div>
+      
+      <div class="qr-preview">
+        <img src="${displayQr}" alt="QR Preview" id="coin-qrPreview-${i}" onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=NotSet'">
+        <div class="qr-info" id="coin-qrInfo-${i}">${coin.address || 'Address preview...'}</div>
+      </div>
+    `;
+    
+    container.appendChild(card);
+    
+    // Live preview update on address/qrUrl change
+    const addrInput = document.getElementById(`coin-address-${i}`);
+    const qrInput = document.getElementById(`coin-qrUrl-${i}`);
+    
+    const updatePreview = () => {
+      const addr = addrInput.value.trim();
+      const qr = qrInput.value.trim();
+      const preview = document.getElementById(`coin-qrPreview-${i}`);
+      const info = document.getElementById(`coin-qrInfo-${i}`);
+      
+      const qrSrc = qr || ('https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=' + encodeURIComponent(addr || 'NotSet'));
+      preview.src = qrSrc;
+      info.textContent = addr || 'Address preview...';
+    };
+    
+    addrInput.addEventListener('input', updatePreview);
+    qrInput.addEventListener('input', updatePreview);
+  });
+}
+
+function addNewCoin() {
+  coinsList.push({
+    symbol: '',
+    name: '',
+    icon: '',
+    network: '',
+    address: '',
+    qrUrl: ''
+  });
+  renderCoins();
+}
+
+function deleteCoin(index) {
+  if (!confirm(`Delete ${coinsList[index].symbol || 'this coin'}?`)) return;
+  coinsList.splice(index, 1);
+  renderCoins();
+  showToast('✅ Coin deleted (click Save All to apply)', 'success');
+}
+
+async function saveAllCoins() {
+  try {
+    // Collect current values from inputs
+    const updated = [];
+    for (let i = 0; i < coinsList.length; i++) {
+      const symbol = document.getElementById(`coin-symbol-${i}`).value.trim().toUpperCase();
+      if (!symbol) continue; // Skip empty
+      
+      updated.push({
+        symbol: symbol,
+        name: document.getElementById(`coin-name-${i}`).value.trim(),
+        icon: document.getElementById(`coin-icon-${i}`).value.trim().toLowerCase() || symbol.toLowerCase(),
+        network: document.getElementById(`coin-network-${i}`).value.trim(),
+        address: document.getElementById(`coin-address-${i}`).value.trim(),
+        qrUrl: document.getElementById(`coin-qrUrl-${i}`).value.trim()
+      });
+    }
+    
+    await db.collection('settings').doc('depositCoins').set({
+      coins: updated,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    showToast('✅ All coins saved successfully!', 'success');
+    coinsList = updated;
+    renderCoins();
+  } catch (e) {
+    showToast('❌ Failed to save: ' + e.message, 'error');
   }
 }
 
