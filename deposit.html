@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Deposit - ABC Company</title>
+<title>Deposit - Crypto World</title>
 <style>
   * { box-sizing:border-box; }
   body { margin:0; font-family:Arial, sans-serif; background:#0b0e11; color:#eaecef; padding-bottom:70px; }
@@ -47,7 +47,6 @@
   }
   .upload-btn:disabled { opacity:0.5; cursor:not-allowed; }
 
-  /* ====== Upload progress (QR-এর উপরে ওভারলে হিসেবে) ====== */
   .upload-progress{
     display:none;
     position:absolute;
@@ -69,20 +68,10 @@
     display:flex; align-items:center; justify-content:center;
     transition:border-color 0.2s;
   }
-  .spinner-circle.complete{
-    animation:none;
-    border-color:#0ecb81;
-  }
-  .spinner-circle.error{
-    animation:none;
-    border-color:#f6465d;
-  }
+  .spinner-circle.complete{ animation:none; border-color:#0ecb81; }
+  .spinner-circle.error{ animation:none; border-color:#f6465d; }
   .spinner-circle .checkmark{
-    display:none;
-    color:#0ecb81;
-    font-size:26px;
-    font-weight:bold;
-    line-height:1;
+    display:none; color:#0ecb81; font-size:26px; font-weight:bold; line-height:1;
   }
   .spinner-circle.complete .checkmark{ display:block; }
   @keyframes spin{ to{ transform:rotate(360deg); } }
@@ -91,7 +80,10 @@
   }
   .progress-text.complete{ color:#0ecb81; }
   .progress-text.error{ color:#f6465d; font-weight:normal; font-size:13px; }
-  /* ===================================== */
+
+  .loading-state {
+    text-align:center; padding:60px 20px; color:#848e9c; font-size:14px;
+  }
 
   .bottom-nav {
     position:fixed; bottom:0; left:0; right:0; background:#161a1e;
@@ -118,35 +110,39 @@
   <h1>Deposit <img class="asset-icon-header" id="header-icon" src="" alt=""></h1>
 </header>
 
-<div class="tabs" id="asset-tabs"></div>
+<div id="loading-section" class="loading-state">
+  Loading deposit options...
+</div>
 
-<div class="content">
-  <div class="network-label" id="network-label">Network: -</div>
-  <div class="address-box" id="address-box">-</div>
-  <button class="copy-btn" id="copy-btn">Copy address</button>
+<div id="deposit-section" style="display:none;">
+  <div class="tabs" id="asset-tabs"></div>
 
-  <div class="qr-wrap">
-    <img id="qr-img" src="" alt="QR code">
-    <!-- ====== Upload progress overlay (QR-এর উপরে, নতুন) ====== -->
-    <div class="upload-progress" id="upload-progress">
-      <div class="spinner-circle" id="spinner-circle">
-        <span class="checkmark" id="checkmark">&#10003;</span>
+  <div class="content">
+    <div class="network-label" id="network-label">Network: -</div>
+    <div class="address-box" id="address-box">-</div>
+    <button class="copy-btn" id="copy-btn">Copy address</button>
+
+    <div class="qr-wrap">
+      <img id="qr-img" src="" alt="QR code">
+      <div class="upload-progress" id="upload-progress">
+        <div class="spinner-circle" id="spinner-circle">
+          <span class="checkmark" id="checkmark">&#10003;</span>
+        </div>
+        <div class="progress-text" id="progress-text">Uploading...</div>
       </div>
-      <div class="progress-text" id="progress-text">Uploading...</div>
     </div>
-    <!-- ========================================================= -->
+
+    <div class="warning-box">
+      Please do not send other types of assets to the above address. This action may result in the loss of your assets. After the transmission is successful, the network node needs to confirm receipt of the corresponding assets. After the transfer is successful, please contact online customer service for confirmation.
+    </div>
+
+    <div class="amount-label" id="amount-label">How much have you deposited?</div>
+    <input type="number" class="amount-input" id="amount-input" placeholder="Enter deposit amount">
+    <div class="amount-error" id="amount-error"></div>
+
+    <input type="file" id="proof-input" accept="image/*" style="display:none;">
+    <button class="upload-btn" id="upload-btn">Upload Proof</button>
   </div>
-
-  <div class="warning-box">
-    Please do not send other types of assets to the above address. This action may result in the loss of your assets. After the transmission is successful, the network node needs to confirm receipt of the corresponding assets. After the transfer is successful, please contact online customer service for confirmation.
-  </div>
-
-  <div class="amount-label" id="amount-label">How much have you deposited?</div>
-  <input type="number" class="amount-input" id="amount-input" placeholder="Enter deposit amount">
-  <div class="amount-error" id="amount-error"></div>
-
-  <input type="file" id="proof-input" accept="image/*" style="display:none;">
-  <button class="upload-btn" id="upload-btn">Upload Proof</button>
 </div>
 
 <div class="bottom-nav">
@@ -169,6 +165,7 @@ const firebaseConfig = {
   appId: "1:1026212780106:web:985ec1bc35837d6320eeb3"
 };
 firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 const IMGBB_API_KEY = '0dae5f846c7bc79071442d3c548697fc';
 
@@ -178,24 +175,55 @@ firebase.auth().onAuthStateChanged(user => {
   currentUser = user;
 });
 
-const depositAssets = [
-  { symbol: 'USDT', name: 'Tether',    icon: 'usdt', network: 'Ethereum (ERC20)', address: '0xAf26e02916bfbc0E49CE82A253988058259fe71E' },
-  { symbol: 'BTC',  name: 'Bitcoin',   icon: 'btc',  network: 'Bitcoin (BTC)',    address: 'bc1q8sfwmlkqfpmeuu2elnpet95wahpg9f96vqr6x9' },
-  { symbol: 'ETH',  name: 'Ethereum',  icon: 'eth',  network: 'Ethereum (ERC20)', address: '0xAf26e02916bfbc0E49CE82A253988058259fe71E' },
-  { symbol: 'USDC', name: 'USD Coin',  icon: 'usdc', network: 'Ethereum (ERC20)', address: '0xAf26e02916bfbc0E49CE82A253988058259fe71E' },
-  { symbol: 'SOL',  name: 'Solana',    icon: 'sol',  network: 'Solana',           address: 'Dt2h9YR127SM2kTiPS3keir1fqYN1qp9ZH2MNpAEHm6P' }
+// Default coins (used if Firebase has no settings)
+const DEFAULT_COINS = [
+  { symbol: 'USDT', name: 'Tether', icon: 'usdt', network: 'Ethereum (ERC20)', address: '0xAf26e02916bfbc0E49CE82A253988058259fe71E', qrUrl: '' },
+  { symbol: 'BTC', name: 'Bitcoin', icon: 'btc', network: 'Bitcoin (BTC)', address: 'bc1q8sfwmlkqfpmeuu2elnpet95wahpg9f96vqr6x9', qrUrl: '' },
+  { symbol: 'ETH', name: 'Ethereum', icon: 'eth', network: 'Ethereum (ERC20)', address: '0xAf26e02916bfbc0E49CE82A253988058259fe71E', qrUrl: '' },
+  { symbol: 'USDC', name: 'USD Coin', icon: 'usdc', network: 'Ethereum (ERC20)', address: '0xAf26e02916bfbc0E49CE82A253988058259fe71E', qrUrl: '' },
+  { symbol: 'SOL', name: 'Solana', icon: 'sol', network: 'Solana', address: 'Dt2h9YR127SM2kTiPS3keir1fqYN1qp9ZH2MNpAEHm6P', qrUrl: '' }
 ];
 
+let depositCoins = [];
 let currentAsset = null;
 
 function iconUrl(icon) {
   return 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/' + icon + '.png';
 }
 
+// Load coins from Firebase
+async function loadCoins() {
+  try {
+    const doc = await db.collection('settings').doc('depositCoins').get();
+    if (doc.exists && Array.isArray(doc.data().coins) && doc.data().coins.length > 0) {
+      depositCoins = doc.data().coins;
+    } else {
+      depositCoins = DEFAULT_COINS;
+    }
+  } catch (e) {
+    console.error('Load coins error:', e);
+    depositCoins = DEFAULT_COINS;
+  }
+  
+  document.getElementById('loading-section').style.display = 'none';
+  document.getElementById('deposit-section').style.display = 'block';
+  
+  renderTabs();
+  if (depositCoins.length > 0) {
+    selectAsset(depositCoins[0]);
+  }
+}
+
 function renderTabs() {
   const tabsEl = document.getElementById('asset-tabs');
   tabsEl.innerHTML = '';
-  depositAssets.forEach((a, i) => {
+  
+  if (depositCoins.length === 0) {
+    tabsEl.innerHTML = '<div style="color:#848e9c;padding:10px;">No coins available. Please contact admin.</div>';
+    return;
+  }
+  
+  depositCoins.forEach((a, i) => {
     const btn = document.createElement('button');
     btn.textContent = a.symbol;
     if (i === 0) btn.classList.add('active');
@@ -210,13 +238,17 @@ function renderTabs() {
 
 function selectAsset(a) {
   currentAsset = a;
-  document.getElementById('header-icon').src = iconUrl(a.icon);
-  document.getElementById('network-label').textContent = 'Network: ' + a.network;
-  document.getElementById('address-box').textContent = a.address;
-  document.getElementById('qr-img').src = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(a.address);
+  document.getElementById('header-icon').src = iconUrl(a.icon || a.symbol.toLowerCase());
+  document.getElementById('network-label').textContent = 'Network: ' + (a.network || '-');
+  document.getElementById('address-box').textContent = a.address || 'Address not set';
+  
+  // QR: use custom qrUrl if set, else auto-generate
+  const qrSrc = a.qrUrl || ('https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(a.address || 'NotSet'));
+  document.getElementById('qr-img').src = qrSrc;
+  
   document.getElementById('copy-btn').classList.remove('copied');
   document.getElementById('copy-btn').textContent = 'Copy address';
-  document.getElementById('copy-btn').dataset.address = a.address;
+  document.getElementById('copy-btn').dataset.address = a.address || '';
   document.getElementById('amount-label').textContent = `How much ${a.symbol} have you deposited?`;
   document.getElementById('amount-input').placeholder = `Enter deposit amount (${a.symbol})`;
   document.getElementById('amount-input').value = '';
@@ -226,6 +258,7 @@ function selectAsset(a) {
 
 document.getElementById('copy-btn').addEventListener('click', function () {
   const address = this.dataset.address;
+  if (!address) return;
   navigator.clipboard.writeText(address).then(() => {
     this.textContent = 'Copied!';
     this.classList.add('copied');
@@ -244,9 +277,7 @@ document.getElementById('upload-btn').addEventListener('click', () => {
   document.getElementById('proof-input').click();
 });
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
 function resetProgress() {
   const progressWrap = document.getElementById('upload-progress');
@@ -263,6 +294,7 @@ function resetProgress() {
 document.getElementById('proof-input').addEventListener('change', async function () {
   if (!this.files || this.files.length === 0) return;
   if (!currentUser) return;
+  if (!currentAsset) return;
 
   const file = this.files[0];
   const amountVal = parseFloat(document.getElementById('amount-input').value);
@@ -271,7 +303,6 @@ document.getElementById('proof-input').addEventListener('change', async function
   const spinner = document.getElementById('spinner-circle');
   const text = document.getElementById('progress-text');
 
-  // ====== ধাপ ১: Uploading... স্পিনার দেখানো (কমপক্ষে ২ সেকেন্ড) ======
   uploadBtn.style.display = 'none';
   uploadBtn.disabled = true;
   spinner.classList.remove('complete', 'error');
@@ -294,7 +325,7 @@ document.getElementById('proof-input').addEventListener('change', async function
     if (!uploadData.success) throw new Error('Image upload failed');
     const proofUrl = uploadData.data.url;
 
-    await firebase.firestore().collection('deposits').add({
+    await db.collection('deposits').add({
       uid: currentUser.uid,
       userEmail: currentUser.email || '',
       symbol: currentAsset.symbol,
@@ -305,21 +336,17 @@ document.getElementById('proof-input').addEventListener('change', async function
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    // আসল আপলোড দ্রুত শেষ হলেও কমপক্ষে ২ সেকেন্ড স্পিনার দেখানো নিশ্চিত করা
     const elapsed = Date.now() - startTime;
     if (elapsed < MIN_UPLOADING_MS) {
       await sleep(MIN_UPLOADING_MS - elapsed);
     }
 
-    // ====== ধাপ ২: Upload Complete (টিক মার্ক, ১ সেকেন্ড) ======
     spinner.classList.add('complete');
     text.classList.add('complete');
     text.textContent = 'Upload Complete';
     document.getElementById('amount-input').value = '';
 
     await sleep(1000);
-
-    // ====== ধাপ ৩: Market এ রিডাইরেক্ট ======
     window.location.href = 'market.html';
 
   } catch (err) {
@@ -333,8 +360,13 @@ document.getElementById('proof-input').addEventListener('change', async function
   }
 });
 
-renderTabs();
-selectAsset(depositAssets[0]);
+// Init: wait for auth then load coins
+firebase.auth().onAuthStateChanged(user => {
+  if (user) {
+    currentUser = user;
+    loadCoins();
+  }
+});
 </script>
 </body>
 </html>
