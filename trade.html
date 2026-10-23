@@ -2,17 +2,28 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trade ABC Company</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Trade - ABC Company</title>
 <style>
   * { box-sizing:border-box; }
-  body { margin:0; font-family:Arial, sans-serif; background:#0b0e11; color:#eaecef; padding-bottom:70px; }
+  html { overflow-x:hidden; width:100%; }
+  body { 
+    margin:0; font-family:Arial, sans-serif; background:#0b0e11; color:#eaecef; 
+    padding-bottom: calc(70px + env(safe-area-inset-bottom)); 
+    overflow-x:hidden; width:100%; max-width:100vw;
+    touch-action:pan-y; overscroll-behavior-x:none; 
+    -webkit-text-size-adjust:100%;
+  }
+  
+  /* Header */
   header { display:flex; align-items:center; justify-content:center; padding:16px 20px; position:relative; }
   header h1 { font-size:20px; margin:0; color:#f0b90b; }
   .back-btn {
     position:absolute; left:16px; top:50%; transform:translateY(-50%);
     background:none; border:none; color:#eaecef; font-size:20px; cursor:pointer;
   }
+
+  /* Coin List View */
   #coin-list-view .coin-row {
     display:flex; align-items:center; justify-content:space-between;
     padding:14px 16px; border-bottom:1px solid #1e2329; cursor:pointer;
@@ -27,79 +38,83 @@
   .change-up { color:#0ecb81; }
   .change-down { color:#f6465d; }
 
+  /* Chart View */
   #chart-view { display:none; padding:16px; }
-
-  .demo-banner {
-    background:rgba(240,185,11,0.12); border:1px solid #f0b90b; color:#f0b90b;
-    padding:10px 14px; border-radius:8px; text-align:center; font-weight:bold;
-    font-size:13px; margin-bottom:12px;
-  }
-  .demo-banner span { display:block; font-weight:normal; font-size:11px; color:#c9a13a; margin-top:2px; }
 
   .chart-header { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
   .chart-header img { width:26px; height:26px; border-radius:50%; }
   .chart-header .pair-name { font-weight:bold; font-size:18px; }
+  
   .chart-card { background:#161a1e; border-radius:12px; padding:16px; }
   .price-row { display:flex; align-items:baseline; gap:10px; margin-bottom:12px; }
   .price-row .big-price { font-size:22px; font-weight:bold; }
+  
   .ohlc-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px 20px; margin-bottom:14px; font-size:13px; color:#848e9c; }
   .ohlc-grid span.val { color:#eaecef; font-weight:bold; }
+  
   .interval-select {
     background:#1e2329; color:#eaecef; border:1px solid #2b3139; border-radius:6px;
     padding:6px 10px; margin-left:auto; cursor:pointer;
+    font-size: 13px;
   }
-  canvas#candles { width:100%; height:190px; display:block; }
-  canvas#volume { width:100%; height:45px; display:block; margin-top:4px; }
+
+  /* Canvas Responsive Fix */
+  canvas#candles, canvas#volume { 
+    width: 100% !important; 
+    max-width: 100%; 
+    height: auto !important; 
+    display: block; 
+  }
+  canvas#candles { height: 190px !important; }
+  canvas#volume { height: 45px !important; margin-top:4px; }
+  
   .time-labels { display:flex; justify-content:space-between; font-size:11px; color:#848e9c; margin-top:4px; }
 
-  .duration-row { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-top:16px; }
+  /* Duration Boxes */
+  .duration-row { 
+    display: grid; 
+    grid-template-columns: repeat(5, 1fr); 
+    gap: 6px; 
+    margin-top:16px; 
+  }
   .duration-box {
     background:#1e2329; border:1px solid #2b3139; border-radius:8px;
-    padding:12px 4px; text-align:center; cursor:pointer; transition:0.15s;
+    padding:10px 2px; text-align:center; cursor:pointer; transition:0.15s;
   }
   .duration-box:active { transform:scale(0.97); }
   .duration-box.selected { border-color:#f0b90b; background:rgba(240,185,11,0.1); }
-  .duration-time { font-size:17px; font-weight:bold; color:#f0b90b; }
-  .duration-return { font-size:10px; color:#848e9c; margin-top:4px; line-height:1.3; }
+  .duration-time { font-size:15px; font-weight:bold; color:#f0b90b; }
+  .duration-return { font-size:9px; color:#848e9c; margin-top:4px; line-height:1.3; }
 
+  /* Animations */
   .chart-visual {
-    max-height:500px;
-    opacity:1;
-    overflow:hidden;
+    max-height:500px; opacity:1; overflow:hidden;
     transition:max-height 0.45s ease, opacity 0.35s ease, margin-top 0.45s ease;
   }
-    .chart-visual.collapsed {
-    max-height:0;
-    opacity:0;
-    margin-top:0;
-  }
+  .chart-visual.collapsed { max-height:0; opacity:0; margin-top:0; }
+  
   .invest-section {
-    margin-top:40px;
-    max-height:0;
-    opacity:0;
-    transform:translateY(24px);
+    margin-top:40px; max-height:0; opacity:0; transform:translateY(24px);
     overflow:hidden;
     transition:max-height 0.45s ease, opacity 0.35s ease, transform 0.4s ease, margin-top 0.45s ease;
   }
-  .invest-section.show {
-    max-height:600px;
-    opacity:1;
-    transform:translateY(0);
-  }
+  .invest-section.show { max-height:600px; opacity:1; transform:translateY(0); }
+
+  /* Amount Input */
   .amount-box { display:flex; align-items:center; gap:8px; }
   .amount-box input {
-  flex:1; min-width:0; width:100%;
-  text-align:center; font-size:18px; font-weight:bold;
-  background:#1e2329; border:1px solid #2b3139; color:#eaecef;
-  padding:12px; border-radius:8px;
-  -moz-appearance:textfield;
-}
-.amount-box input::-webkit-outer-spin-button,
-.amount-box input::-webkit-inner-spin-button {
-  -webkit-appearance:none;
-  margin:0;
-}
+    flex:1; min-width:0; width:100%;
+    text-align:center; font-size:16px !important; font-weight:bold;
+    background:#1e2329; border:1px solid #2b3139; color:#eaecef;
+    padding:12px; border-radius:8px;
+    -moz-appearance:textfield;
+  }
+  .amount-box input::-webkit-outer-spin-button,
+  .amount-box input::-webkit-inner-spin-button {
+    -webkit-appearance:none; margin:0;
+  }
   .amount-box input::placeholder { color:#5b6169; font-weight:normal; font-size:14px; }
+  
   .amt-btn {
     width:44px; height:44px; border-radius:8px; border:1px solid #2b3139;
     background:#1e2329; color:#eaecef; font-size:20px; cursor:pointer; flex-shrink:0;
@@ -114,6 +129,7 @@
     margin-top:8px; background:rgba(240,185,11,0.08);
   }
 
+  /* Trade Buttons */
   .direction-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px; }
   .down-btn, .up-btn {
     padding:14px; border-radius:8px; font-weight:bold; font-size:15px; cursor:pointer;
@@ -122,10 +138,13 @@
   .up-btn { background:rgba(14,203,129,0.12); border:1px solid #0ecb81; color:#0ecb81; }
   .down-btn:disabled, .up-btn:disabled { opacity:0.4; cursor:not-allowed; }
 
+  /* Bottom Nav */
   .bottom-nav {
     position:fixed; bottom:0; left:0; right:0; background:#161a1e;
-    display:flex; justify-content:space-around; padding:10px 0;
+    display:flex; justify-content:space-around; 
+    padding: 10px 0 calc(10px + env(safe-area-inset-bottom)) 0;
     border-top:1px solid #2b3139;
+    z-index: 999;
   }
   .bottom-nav a { text-decoration:none; }
   .bottom-nav div { text-align:center; color:#848e9c; font-size:11px; cursor:pointer; }
@@ -139,7 +158,7 @@
     box-shadow:0 0 0 6px rgba(240,185,11,0.08);
   }
 
-  /* ---------- Trade result popup (matches the ethusdt card screenshots) ---------- */
+  /* Trade Result Popup */
   .tm-overlay {
     display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6);
     align-items:center; justify-content:center; z-index:9999; padding:20px;
@@ -164,40 +183,31 @@
   }
   .tm-row:last-child { border-bottom:none; }
   .tm-row span:last-child { color:#fff; font-weight:bold; }
-  .tm-order-number {
-    font-size:11px; color:#9fb3e6; word-break:break-all; margin-top:10px;
-  }
+  .tm-order-number { font-size:11px; color:#9fb3e6; word-break:break-all; margin-top:10px; }
   .tm-again-btn {
     display:none; margin-top:18px; width:100%; padding:13px; border:none;
     border-radius:24px; background:#eef3ff; color:#1a4fce; font-weight:bold;
     font-size:14px; cursor:pointer;
   }
-    .tm-again-btn:active { background:#d9e4ff; }
+  .tm-again-btn:active { background:#d9e4ff; }
 
+  /* Welcome Loading */
   .welcome-loading {
     display:flex; align-items:center; justify-content:center;
     height:60vh; text-align:center; padding:20px;
     position:relative; overflow:hidden;
   }
   .candle-bg {
-    position:absolute; inset:0;
-    display:flex; align-items:center; justify-content:center;
-    gap:14px;
-    z-index:0; opacity:0.55; pointer-events:none;
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    gap:14px; z-index:0; opacity:0.55; pointer-events:none;
   }
   .candle-bar {
-    width:22px;
-    border:2px solid #fff;
-    border-radius:3px;
-    position:relative;
+    width:22px; border:2px solid #fff; border-radius:3px; position:relative;
     animation: candlePulse 1.8s ease-in-out infinite;
   }
   .candle-bar::before {
-    content:'';
-    position:absolute; left:50%; top:-16px; bottom:-16px;
-    width:2px; background:#fff;
-    transform:translateX(-50%);
-    z-index:-1;
+    content:''; position:absolute; left:50%; top:-16px; bottom:-16px;
+    width:2px; background:#fff; transform:translateX(-50%); z-index:-1;
   }
   .candle-bar.up { background:#0ecb81; }
   .candle-bar.down { background:#f6465d; }
@@ -211,30 +221,18 @@
   .candle-bar:nth-child(8) { animation-delay:1.75s; }
   .candle-bar:nth-child(9) { animation-delay:2s; }
   .candle-bar:nth-child(10) { animation-delay:2.25s; }
+  
   @keyframes candlePulse {
     0%, 100% { height:60px; }
     50% { height:150px; }
   }
-  .welcome-loading .typing-text,
-  .welcome-loading .typing-cursor {
-    position:relative;
-    z-index:1;
+  
+  .typing-text { font-size:28px; font-weight:900; color:#f0b90b; display:inline-block; white-space:pre; }
+  .typing-cursor {
+    display:inline-block; width:3px; background:#f0b90b;
+    margin-left:2px; animation: blinkCursor 0.6s step-end infinite;
   }
-  .typing-text {
-  font-size:28px; font-weight:900; color:#f0b90b;
-  display:inline-block;
-  white-space:pre;
-}
-.typing-cursor {
-  display:inline-block;
-  width:3px;
-  background:#f0b90b;
-  margin-left:2px;
-  animation: blinkCursor 0.6s step-end infinite;
-}
-@keyframes blinkCursor {
-  50% { opacity:0; }
-}
+  @keyframes blinkCursor { 50% { opacity:0; } }
 </style>
 </head>
 <body>
@@ -244,21 +242,20 @@
   <h1 id="page-title">Smart Trading</h1>
 </header>
 
-<div id="coin-list-view"><div class="welcome-loading">
-  <div class="candle-bg">
-    <div class="candle-bar up"></div>
-    <div class="candle-bar down"></div>
-    <div class="candle-bar up"></div>
-    <div class="candle-bar down"></div>
-    <div class="candle-bar up"></div>
-    <div class="candle-bar down"></div>
-    <div class="candle-bar up"></div>
-    <div class="candle-bar down"></div>
-    <div class="candle-bar up"></div>
-    <div class="candle-bar down"></div>
+<!-- Coin List View -->
+<div id="coin-list-view">
+  <div class="welcome-loading">
+    <div class="candle-bg">
+      <div class="candle-bar up"></div><div class="candle-bar down"></div>
+      <div class="candle-bar up"></div><div class="candle-bar down"></div>
+      <div class="candle-bar up"></div><div class="candle-bar down"></div>
+      <div class="candle-bar up"></div><div class="candle-bar down"></div>
+      <div class="candle-bar up"></div><div class="candle-bar down"></div>
+    </div>
+    <span class="typing-text" id="welcome-text"></span><span class="typing-cursor">&nbsp;</span>
   </div>
-  <span class="typing-text" id="welcome-text"></span><span class="typing-cursor">&nbsp;</span>
-</div></div>
+</div>
+
 <script>
 (function() {
   var text = "Welcome Smart Trading";
@@ -272,19 +269,19 @@
 })();
 </script>
 
+<!-- Chart View -->
 <div id="chart-view">
-
   <div class="chart-header">
     <img id="chart-icon" src="" alt="">
     <span class="pair-name" id="chart-pair"></span>
-   <select class="interval-select" id="interval-select">
-  <option value="1m">1min</option>
-  <option value="5m">5min</option>
-  <option value="15m" selected>15min</option>
-  <option value="1h">1hour</option>
-  <option value="4h">4hour</option>
-  <option value="1d">1day</option>
-</select>
+    <select class="interval-select" id="interval-select">
+      <option value="1m">1min</option>
+      <option value="5m">5min</option>
+      <option value="15m" selected>15min</option>
+      <option value="1h">1hour</option>
+      <option value="4h">4hour</option>
+      <option value="1d">1day</option>
+    </select>
   </div>
   <div class="chart-card">
     <div class="price-row">
@@ -324,6 +321,7 @@
   </div>
 </div>
 
+<!-- Bottom Nav -->
 <div class="bottom-nav">
   <a href="market.html"><div><div class="ic">&#128200;</div>Market</div></a>
   <div class="active"><div class="ic">&#128179;</div>Trade</div>
@@ -331,14 +329,12 @@
   <a href="profile.html"><div><div class="ic">&#128100;</div>Profile</div></a>
 </div>
 
-<!-- ---------- Trade popup card ---------- -->
+<!-- Trade Popup -->
 <div class="tm-overlay" id="trade-modal-overlay">
   <div class="tm-card">
     <div class="tm-title" id="tm-title">ethusdt</div>
-
     <div class="tm-timer-circle" id="tm-timer-circle"><span id="tm-timer-text">60s</span></div>
     <div class="tm-result" id="tm-result"></div>
-
     <div class="tm-rows">
       <div class="tm-row"><span>Open price</span><span id="tm-open">-</span></div>
       <div class="tm-row"><span>Last price:</span><span id="tm-last">-</span></div>
@@ -346,13 +342,12 @@
       <div class="tm-row"><span>Fee:</span><span id="tm-fee">-</span></div>
       <div class="tm-row"><span>Expected return:</span><span id="tm-return">-</span></div>
     </div>
-
     <div class="tm-order-number" id="tm-order-number">Order number: -</div>
-
     <button class="tm-again-btn" id="tm-again-btn">Order again</button>
   </div>
 </div>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -367,21 +362,16 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 
-// ---------- Real balance (Firestore, synced with profile.html) ----------
 let currentUser = null;
 let currentBalance = 0;
 
-function getBalance() {
-  return currentBalance;
-}
+function getBalance() { return currentBalance; }
 
 function updateBalanceDisplay() {
   const el = document.getElementById('balance-display');
   if (el) el.textContent = `Est. Total Value: ${currentBalance.toFixed(2)} USDT`;
 }
 
-// Sets the balance in Firestore to an exact new value.
-// currentBalance itself is updated automatically by the onSnapshot listener below.
 function setBalance(newVal) {
   if (!currentUser) return;
   firebase.firestore().collection('users').doc(currentUser.uid).update({
@@ -438,9 +428,6 @@ const coinList = [
   { symbol: 'HBARUSDT', name: 'Hedera', short: 'HBAR', icon: 'hbar' }
 ];
 
-// Duration options with their amount ranges and step sizes.
-// This is the fallback/default — loadTradeConfig() will overwrite it with
-// whatever the admin panel has saved to Firestore (settings/tradeConfig).
 let durationList = [
   { seconds: 60,  returnPct: 20.00, min: 100,    max: 9999,     step: 100   },
   { seconds: 120, returnPct: 25.00, min: 10000,  max: 49999,    step: 1000  },
@@ -449,25 +436,19 @@ let durationList = [
   { seconds: 600, returnPct: 85.00, min: 100000, max: Infinity, step: 10000 }
 ];
 
-// Fee rate applied on every trade (0.2 USD fee on a 100 USD stake = 0.2%)
 const FEE_RATE = 0.002;
-
 let selectedDuration = null;
 
-// ---------- Load duration/return% config from Firestore (editable via admin panel) ----------
 async function loadTradeConfig() {
   try {
     const doc = await firebase.firestore().collection('settings').doc('tradeConfig').get();
     if (doc.exists && Array.isArray(doc.data().durations) && doc.data().durations.length) {
       durationList = doc.data().durations.map(d => ({
-        seconds: d.seconds,
-        returnPct: d.returnPct,
-        min: d.min,
+        seconds: d.seconds, returnPct: d.returnPct, min: d.min,
         max: (d.max === null || d.max === undefined) ? Infinity : d.max,
         step: d.step
       }));
     } else {
-      // First run ever: seed Firestore with the default list so the admin panel has something to edit.
       const seedData = durationList.map(d => ({ ...d, max: d.max === Infinity ? null : d.max }));
       await firebase.firestore().collection('settings').doc('tradeConfig').set({ durations: seedData });
     }
@@ -476,7 +457,6 @@ async function loadTradeConfig() {
   }
 }
 
-// ---------- Duration boxes ----------
 function renderDurationBoxes() {
   const row = document.getElementById('duration-row');
   row.innerHTML = '';
@@ -552,7 +532,6 @@ function validateAmount() {
   return val;
 }
 
-// ---------- Coin list / chart view switching ----------
 const listView = document.getElementById('coin-list-view');
 const chartView = document.getElementById('chart-view');
 const backBtn = document.getElementById('back-btn');
@@ -571,21 +550,16 @@ function iconUrl(icon) {
 async function loadCoinList() {
   listView.innerHTML = `<div class="welcome-loading">
     <div class="candle-bg">
-      <div class="candle-bar up"></div>
-      <div class="candle-bar down"></div>
-      <div class="candle-bar up"></div>
-      <div class="candle-bar down"></div>
-      <div class="candle-bar up"></div>
-      <div class="candle-bar down"></div>
-      <div class="candle-bar up"></div>
-      <div class="candle-bar down"></div>
-      <div class="candle-bar up"></div>
-      <div class="candle-bar down"></div>
+      <div class="candle-bar up"></div><div class="candle-bar down"></div>
+      <div class="candle-bar up"></div><div class="candle-bar down"></div>
+      <div class="candle-bar up"></div><div class="candle-bar down"></div>
+      <div class="candle-bar up"></div><div class="candle-bar down"></div>
+      <div class="candle-bar up"></div><div class="candle-bar down"></div>
     </div>
     <span class="typing-text">Welcome Smart Trading</span>
   </div>`;
   try {
-        const minDelay = new Promise(resolve => setTimeout(resolve, 2000));
+    const minDelay = new Promise(resolve => setTimeout(resolve, 2000));
     const symbolsParam = encodeURIComponent(JSON.stringify(coinList.map(c => c.symbol)));
     const fetchData = fetch('https://api.binance.com/api/v3/ticker/24hr?symbols=' + symbolsParam)
       .then(res => res.json());
@@ -617,7 +591,6 @@ async function loadCoinList() {
       listView.appendChild(row);
     });
 
-    // Start the smooth, in-place price refresh only after the initial list has rendered.
     clearInterval(priceRefreshTimer);
     priceRefreshTimer = setInterval(refreshCoinPrices, 2000);
   } catch (err) {
@@ -625,10 +598,7 @@ async function loadCoinList() {
   }
 }
 
-// Updates only the price/percentage text of each row already on screen.
-// No innerHTML rebuild, no loading screen — avoids the flicker.
 async function refreshCoinPrices() {
-  // Don't refresh the list while the user is looking at a coin's chart page.
   if (listView.style.display === 'none') return;
   try {
     const symbolsParam = encodeURIComponent(JSON.stringify(coinList.map(c => c.symbol)));
@@ -640,7 +610,7 @@ async function refreshCoinPrices() {
       if (!t) return;
       const priceEl = document.getElementById('price-' + coin.symbol);
       const changeEl = document.getElementById('change-' + coin.symbol);
-      if (!priceEl || !changeEl) return; // row not rendered (e.g. list failed earlier)
+      if (!priceEl || !changeEl) return;
 
       const changePercent = parseFloat(t.priceChangePercent);
       const up = changePercent >= 0;
@@ -650,9 +620,7 @@ async function refreshCoinPrices() {
       changeEl.textContent = (up?'+':'') + changePercent.toFixed(2) + '%';
       changeEl.className = up ? 'change-up' : 'change-down';
     });
-  } catch (err) {
-    // Silently skip this cycle on a network hiccup; next interval will retry.
-  }
+  } catch (err) {}
 }
 
 function openChart(coin) {
@@ -753,17 +721,15 @@ async function loadChart() {
     const klines = await res.json();
     if (!klines || klines.length === 0) return;
 
-    // Merge the live price into the last (currently forming) candle so the
-    // chart visibly moves between full candle refreshes, not just every 15s.
     try {
       const priceRes = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${currentSymbol.symbol}`);
       const priceData = await priceRes.json();
       const livePrice = parseFloat(priceData.price);
       if (!isNaN(livePrice)) {
         const last = klines[klines.length - 1];
-        last[4] = String(livePrice); // close
-        if (livePrice > parseFloat(last[2])) last[2] = String(livePrice); // high
-        if (livePrice < parseFloat(last[3])) last[3] = String(livePrice); // low
+        last[4] = String(livePrice);
+        if (livePrice > parseFloat(last[2])) last[2] = String(livePrice);
+        if (livePrice < parseFloat(last[3])) last[3] = String(livePrice);
       }
     } catch (e) {}
 
@@ -798,7 +764,6 @@ async function loadChart() {
   }
 }
 
-// ---------- Trade popup helpers ----------
 const tmOverlay = document.getElementById('trade-modal-overlay');
 const tmTitle = document.getElementById('tm-title');
 const tmTimerCircle = document.getElementById('tm-timer-circle');
@@ -821,15 +786,9 @@ function generateOrderNumber() {
   return `O${datePart}${rand}`;
 }
 
-function openTradeModal() {
-  tmOverlay.classList.add('active');
-}
+function openTradeModal() { tmOverlay.classList.add('active'); }
+function closeTradeModal() { tmOverlay.classList.remove('active'); }
 
-function closeTradeModal() {
-  tmOverlay.classList.remove('active');
-}
-
-// "Order again" resets back to the duration-selection screen (before invest section)
 tmAgainBtn.addEventListener('click', () => {
   closeTradeModal();
   document.getElementById('invest-section').classList.remove('show');
@@ -838,7 +797,6 @@ tmAgainBtn.addEventListener('click', () => {
   document.querySelectorAll('.duration-box').forEach(b => b.classList.remove('selected'));
 });
 
-// ---------- Trade execution (resolved by real live price movement, unless an admin forces the result, or a win-rate % override is set) ----------
 async function fetchLivePrice(symbol) {
   const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
   const data = await res.json();
@@ -860,7 +818,6 @@ async function placeTrade(direction) {
   downBtn.disabled = true;
   amountInput.disabled = true;
 
-  // Deduct the stake immediately
   const balanceAfterStake = getBalance() - amount;
   setBalance(balanceAfterStake);
 
@@ -868,7 +825,7 @@ async function placeTrade(direction) {
   try {
     entryPrice = await fetchLivePrice(currentSymbol.symbol);
   } catch (err) {
-    setBalance(balanceAfterStake + amount); // refund
+    setBalance(balanceAfterStake + amount);
     resetTradeButtons();
     alert('Failed to fetch price, trade cancelled.');
     return;
@@ -878,7 +835,6 @@ async function placeTrade(direction) {
   const expectedReturn = amount * (duration.returnPct / 100);
   const orderNumber = generateOrderNumber();
 
-  // ---- Save the trade to Firestore so the admin panel can see / force it ----
   let tradeDocRef = null;
   try {
     tradeDocRef = await firebase.firestore().collection('trades').add({
@@ -900,7 +856,6 @@ async function placeTrade(direction) {
     console.error('Failed to save trade record:', e);
   }
 
-  // ---- Show the pending popup card ----
   tmTitle.textContent = currentSymbol.symbol.toLowerCase();
   tmTimerCircle.style.display = 'flex';
   tmResult.style.display = 'none';
@@ -922,7 +877,6 @@ async function placeTrade(direction) {
     if (remaining >= 0) {
       tmTimerText.textContent = remaining + 's';
     }
-    // refresh the live "Last price" every couple of seconds
     if (remaining > 0 && remaining % 2 === 0) {
       try {
         const p = await fetchLivePrice(currentSymbol.symbol);
@@ -950,7 +904,6 @@ async function placeTrade(direction) {
       return;
     }
 
-    // ---- Check whether an admin has forced this trade's outcome ----
     let forcedResult = null;
     if (tradeDocRef) {
       try {
@@ -959,7 +912,6 @@ async function placeTrade(direction) {
       } catch (e) {}
     }
 
-    // ---- Check whether this user has a Win Rate % override set in the admin panel ----
     let winRatePercent = null;
     try {
       const userSnap = await firebase.firestore().collection('users').doc(currentUser.uid).get();
