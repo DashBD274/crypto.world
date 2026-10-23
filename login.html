@@ -46,19 +46,37 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 
-// ★★★ নতুন পরিবর্তন: পেজ লোড হওয়ার সাথে সাথে আগের সেশন মুছে ফেলা ★★★
-// এর ফলে আপনি যখনই অ্যাপটি বন্ধ করে আবার খুলবেন, অ্যাপ আপনাকে সরাসরি মার্কেটে না পাঠিয়ে 
-// সবসময় এই লগইন পেজটি দেখাবে।
-firebase.auth().signOut().then(() => {
-  localStorage.clear();
-  sessionStorage.clear();
-  
-  document.getElementById('loading-overlay').style.display = 'none';
-  document.getElementById('login-box').style.display = 'block';
-}).catch((error) => {
-  // যদি কোনো কারণে সাইনআউট না হয়, তবুও লগইন বক্স দেখাবে
-  document.getElementById('loading-overlay').style.display = 'none';
-  document.getElementById('login-box').style.display = 'block';
+// ★★★ ১. সেশন সেভ রাখার চেষ্টা (LOCAL) ★★★
+async function setBestAvailablePersistence() {
+  try {
+    await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+  } catch (persistErr) {
+    try {
+      await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
+    } catch (sessionErr) {
+      await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.NONE);
+    }
+  }
+}
+
+// ★★★ ২. অটো-লগইন চেক ★★★
+setBestAvailablePersistence().then(() => {
+  firebase.auth().onAuthStateChanged((user) => {
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loginBox = document.getElementById('login-box');
+
+    if (user) {
+      // ইউজার অলরেডি লগইন আছে -> সরাসরি রিডাইরেক্ট
+      const dest = (user.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase()
+        ? 'admin.html'
+        : 'market.html';
+      window.location.replace(dest);
+    } else {
+      // লগইন নেই -> লোডিং সরিয়ে ফর্ম দেখাও
+      loadingOverlay.style.display = 'none';
+      loginBox.style.display = 'block';
+    }
+  });
 });
 
 // মোবাইল কীবোর্ডের জন্য স্ক্রল ফিক্স
@@ -86,12 +104,13 @@ function logIn() {
   msg.style.color = '#f0b90b';
   msg.textContent = 'Logging in...';
 
-  firebase.auth().signInWithEmailAndPassword(email, password)
+  setBestAvailablePersistence()
+    .then(() => firebase.auth().signInWithEmailAndPassword(email, password))
     .then((cred) => {
       const destination = (cred.user.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase()
         ? 'admin.html'
         : 'market.html';
-      window.location.replace(destination); // replace ব্যবহার করায় লগইনের পর ব্যাক বাটনে লগইন পেজে ফিরবে না
+      window.location.replace(destination);
     })
     .catch(err => {
       msg.style.color = 'red';
