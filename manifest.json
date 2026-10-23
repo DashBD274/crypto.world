@@ -9,13 +9,13 @@
   "theme_color": "#0b0e11",
   "icons": [
     {
-      "src": "assets/tradewallet-logo.png",
+      "src": "https://i.ibb.co/vz9R8zB/tradewallet-logo.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "assets/tradewallet-logo.png",
+      "src": "https://i.ibb.co/vz9R8zB/tradewallet-logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
