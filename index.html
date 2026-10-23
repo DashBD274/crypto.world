@@ -11,11 +11,92 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="My Wallet">
     <link rel="apple-touch-icon" sizes="180x180" href="tradewallet.png">
-    <!-- ========================================================== -->
 
     <style>
         * { box-sizing: border-box; }
         body { margin: 0; font-family: Arial, sans-serif; background: #0b0e11; color: #eaecef; }
+        
+        /* ================= পিন লক স্ক্রিনের স্টাইল ================= */
+        #lock-screen {
+            position: fixed;
+            inset: 0;
+            background: #0b0e11;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .lock-logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            border-radius: 20px;
+        }
+        .lock-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #eaecef;
+            margin-bottom: 10px;
+        }
+        .lock-subtitle {
+            font-size: 14px;
+            color: #848e9c;
+            margin-bottom: 30px;
+        }
+        .pin-dots {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .pin-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #848e9c;
+            background: transparent;
+            transition: all 0.2s;
+        }
+        .pin-dot.filled {
+            background: #f0b90b;
+            border-color: #f0b90b;
+        }
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            max-width: 280px;
+            width: 100%;
+        }
+        .key {
+            background: #1e2329;
+            border: 1px solid #474d57;
+            color: #eaecef;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.1s;
+        }
+        .key:active {
+            background: #f0b90b;
+            color: #202630;
+        }
+        .key-empty {
+            background: transparent;
+            border: none;
+            cursor: default;
+        }
+        
+        /* মূল ওয়েবসাইট (প্রথমে লুকানো থাকবে) */
+        #main-content {
+            display: none;
+        }
+        /* ========================================================= */
+
         header { display:flex; align-items:center; justify-content:space-between; padding: 16px 30px; background:#0b0e11; border-bottom: 1px solid #1e2329; position: sticky; top: 0; z-index: 1000; }
         header .logo { font-size: 28px; font-weight:bold; color:#f0b90b; }
         header .nav-right { display:flex; align-items:center; gap:12px; }
@@ -89,425 +170,388 @@
     </style>
 </head>
 <body>
-<header>
-    <div class="logo">Crypto World</div>
-    <div class="nav-right" id="nav-right">
-        <a href="login.html" style="text-decoration:none;"><button class="btn-outline">Log In</button></a>
-        <a href="signup.html" style="text-decoration:none;"><button class="btn-gold">Sign Up</button></a>
+
+    <!-- ================= লক স্ক্রিন (প্রথমে এটি দেখাবে) ================= -->
+    <div id="lock-screen">
+        <img src="tradewallet.png" alt="Logo" class="lock-logo" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2203/2203132.png'">
+        <div class="lock-title">Enter Passcode</div>
+        <div class="lock-subtitle">Please enter your 4-digit PIN</div>
+        
+        <div class="pin-dots" id="pin-dots">
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+        </div>
+
+        <div class="keypad" id="keypad">
+            <button class="key" onclick="enterPin('1')">1</button>
+            <button class="key" onclick="enterPin('2')">2</button>
+            <button class="key" onclick="enterPin('3')">3</button>
+            <button class="key" onclick="enterPin('4')">4</button>
+            <button class="key" onclick="enterPin('5')">5</button>
+            <button class="key" onclick="enterPin('6')">6</button>
+            <button class="key" onclick="enterPin('7')">7</button>
+            <button class="key" onclick="enterPin('8')">8</button>
+            <button class="key" onclick="enterPin('9')">9</button>
+            <button class="key key-empty"></button>
+            <button class="key" onclick="enterPin('0')">0</button>
+            <button class="key" onclick="deletePin()" style="font-size:18px;">⌫</button>
+        </div>
     </div>
-</header>
 
-<div class="hero">
-    <p class="stat" id="customer-count">330,160,532</p>
-    <h1>USERS TRUST US</h1>
-    <p class="tagline">The World's Leading Cryptocurrency Trading</p>
-
-    <div class="badges">
-        <div class="badge-decorated">
-            <svg class="wreath wreath-left" viewBox="0 0 30 70" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 65 C6 55 6 40 12 25 C17 12 19 6 19 2" stroke="#f0b90b" stroke-width="2" fill="none"/>
-                <ellipse cx="15" cy="12" rx="5" ry="8" fill="#f0b90b" transform="rotate(-25 15 12)"/>
-                <ellipse cx="11" cy="24" rx="5" ry="8" fill="#f0b90b" transform="rotate(-35 11 24)"/>
-                <ellipse cx="9" cy="37" rx="5" ry="8" fill="#f0b90b" transform="rotate(-45 9 37)"/>
-                <ellipse cx="10" cy="50" rx="5" ry="8" fill="#f0b90b" transform="rotate(-55 10 50)"/>
-                <ellipse cx="14" cy="61" rx="5" ry="8" fill="#f0b90b" transform="rotate(-65 14 61)"/>
-            </svg>
-            <div class="badge-item">
-                <div class="badge-title">10+ Years</div>
-                <div class="badge-sub">In Business</div>
+    <!-- ================= মূল ওয়েবসাইট (লক খোলার পর দেখাবে) ================= -->
+    <div id="main-content">
+        <header>
+            <div class="logo">Crypto World</div>
+            <div class="nav-right" id="nav-right">
+                <a href="login.html" style="text-decoration:none;"><button class="btn-outline">Log In</button></a>
+                <a href="signup.html" style="text-decoration:none;"><button class="btn-gold">Sign Up</button></a>
             </div>
-            <svg class="wreath wreath-right" viewBox="0 0 30 70" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 65 C6 55 6 40 12 25 C17 12 19 6 19 2" stroke="#f0b90b" stroke-width="2" fill="none"/>
-                <ellipse cx="15" cy="12" rx="5" ry="8" fill="#f0b90b" transform="rotate(-25 15 12)"/>
-                <ellipse cx="11" cy="24" rx="5" ry="8" fill="#f0b90b" transform="rotate(-35 11 24)"/>
-                <ellipse cx="9" cy="37" rx="5" ry="8" fill="#f0b90b" transform="rotate(-45 9 37)"/>
-                <ellipse cx="10" cy="50" rx="5" ry="8" fill="#f0b90b" transform="rotate(-55 10 50)"/>
-                <ellipse cx="14" cy="61" rx="5" ry="8" fill="#f0b90b" transform="rotate(-65 14 61)"/>
-            </svg>
-        </div>
+        </header>
 
-        <div class="badge-decorated">
-            <svg class="wreath wreath-left" viewBox="0 0 30 70" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 65 C6 55 6 40 12 25 C17 12 19 6 19 2" stroke="#f0b90b" stroke-width="2" fill="none"/>
-                <ellipse cx="15" cy="12" rx="5" ry="8" fill="#f0b90b" transform="rotate(-25 15 12)"/>
-                <ellipse cx="11" cy="24" rx="5" ry="8" fill="#f0b90b" transform="rotate(-35 11 24)"/>
-                <ellipse cx="9" cy="37" rx="5" ry="8" fill="#f0b90b" transform="rotate(-45 9 37)"/>
-                <ellipse cx="10" cy="50" rx="5" ry="8" fill="#f0b90b" transform="rotate(-55 10 50)"/>
-                <ellipse cx="14" cy="61" rx="5" ry="8" fill="#f0b90b" transform="rotate(-65 14 61)"/>
-            </svg>
-            <div class="badge-item">
-                <div class="badge-title">24/7</div>
-                <div class="badge-sub">Customer Support</div>
+        <div class="hero">
+            <p class="stat" id="customer-count">330,160,532</p>
+            <h1>USERS TRUST US</h1>
+            <p class="tagline">The World's Leading Cryptocurrency Trading</p>
+
+            <div class="badges">
+                <div class="badge-decorated">
+                    <svg class="wreath wreath-left" viewBox="0 0 30 70" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 65 C6 55 6 40 12 25 C17 12 19 6 19 2" stroke="#f0b90b" stroke-width="2" fill="none"/>
+                        <ellipse cx="15" cy="12" rx="5" ry="8" fill="#f0b90b" transform="rotate(-25 15 12)"/>
+                        <ellipse cx="11" cy="24" rx="5" ry="8" fill="#f0b90b" transform="rotate(-35 11 24)"/>
+                        <ellipse cx="9" cy="37" rx="5" ry="8" fill="#f0b90b" transform="rotate(-45 9 37)"/>
+                        <ellipse cx="10" cy="50" rx="5" ry="8" fill="#f0b90b" transform="rotate(-55 10 50)"/>
+                        <ellipse cx="14" cy="61" rx="5" ry="8" fill="#f0b90b" transform="rotate(-65 14 61)"/>
+                    </svg>
+                    <div class="badge-item">
+                        <div class="badge-title">10+ Years</div>
+                        <div class="badge-sub">In Business</div>
+                    </div>
+                    <svg class="wreath wreath-right" viewBox="0 0 30 70" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 65 C6 55 6 40 12 25 C17 12 19 6 19 2" stroke="#f0b90b" stroke-width="2" fill="none"/>
+                        <ellipse cx="15" cy="12" rx="5" ry="8" fill="#f0b90b" transform="rotate(-25 15 12)"/>
+                        <ellipse cx="11" cy="24" rx="5" ry="8" fill="#f0b90b" transform="rotate(-35 11 24)"/>
+                        <ellipse cx="9" cy="37" rx="5" ry="8" fill="#f0b90b" transform="rotate(-45 9 37)"/>
+                        <ellipse cx="10" cy="50" rx="5" ry="8" fill="#f0b90b" transform="rotate(-55 10 50)"/>
+                        <ellipse cx="14" cy="61" rx="5" ry="8" fill="#f0b90b" transform="rotate(-65 14 61)"/>
+                    </svg>
+                </div>
+
+                <div class="badge-decorated">
+                    <svg class="wreath wreath-left" viewBox="0 0 30 70" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 65 C6 55 6 40 12 25 C17 12 19 6 19 2" stroke="#f0b90b" stroke-width="2" fill="none"/>
+                        <ellipse cx="15" cy="12" rx="5" ry="8" fill="#f0b90b" transform="rotate(-25 15 12)"/>
+                        <ellipse cx="11" cy="24" rx="5" ry="8" fill="#f0b90b" transform="rotate(-35 11 24)"/>
+                        <ellipse cx="9" cy="37" rx="5" ry="8" fill="#f0b90b" transform="rotate(-45 9 37)"/>
+                        <ellipse cx="10" cy="50" rx="5" ry="8" fill="#f0b90b" transform="rotate(-55 10 50)"/>
+                        <ellipse cx="14" cy="61" rx="5" ry="8" fill="#f0b90b" transform="rotate(-65 14 61)"/>
+                    </svg>
+                    <div class="badge-item">
+                        <div class="badge-title">24/7</div>
+                        <div class="badge-sub">Customer Support</div>
+                    </div>
+                    <svg class="wreath wreath-right" viewBox="0 0 30 70" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 65 C6 55 6 40 12 25 C17 12 19 6 19 2" stroke="#f0b90b" stroke-width="2" fill="none"/>
+                        <ellipse cx="15" cy="12" rx="5" ry="8" fill="#f0b90b" transform="rotate(-25 15 12)"/>
+                        <ellipse cx="11" cy="24" rx="5" ry="8" fill="#f0b90b" transform="rotate(-35 11 24)"/>
+                        <ellipse cx="9" cy="37" rx="5" ry="8" fill="#f0b90b" transform="rotate(-45 9 37)"/>
+                        <ellipse cx="10" cy="50" rx="5" ry="8" fill="#f0b90b" transform="rotate(-55 10 50)"/>
+                        <ellipse cx="14" cy="61" rx="5" ry="8" fill="#f0b90b" transform="rotate(-65 14 61)"/>
+                    </svg>
+                </div>
             </div>
-            <svg class="wreath wreath-right" viewBox="0 0 30 70" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 65 C6 55 6 40 12 25 C17 12 19 6 19 2" stroke="#f0b90b" stroke-width="2" fill="none"/>
-                <ellipse cx="15" cy="12" rx="5" ry="8" fill="#f0b90b" transform="rotate(-25 15 12)"/>
-                <ellipse cx="11" cy="24" rx="5" ry="8" fill="#f0b90b" transform="rotate(-35 11 24)"/>
-                <ellipse cx="9" cy="37" rx="5" ry="8" fill="#f0b90b" transform="rotate(-45 9 37)"/>
-                <ellipse cx="10" cy="50" rx="5" ry="8" fill="#f0b90b" transform="rotate(-55 10 50)"/>
-                <ellipse cx="14" cy="61" rx="5" ry="8" fill="#f0b90b" transform="rotate(-65 14 61)"/>
-            </svg>
+
+            <div class="signup-row">
+                <input type="text" placeholder="Email/Phone number">
+                <button onclick="window.location.href='signup.html'">Sign Up</button>
+            </div>
+
+            <div class="ticker-wrap">
+                <div class="ticker-track" id="ticker-track">
+                    <div class="ticker-item"><span class="ticker-icon">&#9733;</span>Recognized as <b>Forbes' Most Trusted Crypto Exchange 2025</b></div>
+                    <div class="ticker-item"><span class="ticker-icon">&#9733;</span>Named <b>CNBC's World's Top Fintech Company 2025</b> in Digital Assets</div>
+                    <div class="ticker-item"><span class="ticker-icon">&#9733;</span>Named a <b>CeFi Leader</b> in Fortune Crypto 100's Most Influential Companies in Blockchain</div>
+                    <div class="ticker-item"><span class="ticker-icon">&#9733;</span><b>Funds are SAFU</b> — protecting your assets is our top priority</div>
+                </div>
+            </div>
+
+            <div class="ticker-wrap">
+                <div class="ticker-track ticker-track-slow" id="ticker-track-2">
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#555;">AAPL</span>Apple</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#4285f4;">GOOG</span>Google</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#00a4ef;">MSFT</span>Microsoft</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#ff9900;">AMZN</span>Amazon</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#e50914;">TSLA</span>Tesla</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#76b900;">NVDA</span>NVIDIA</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#1877f2;">META</span>Meta</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#e50914;">NFLX</span>Netflix</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#1a1f71;">V</span>Visa</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#eb001b;">MA</span>Mastercard</div>
+
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#f0b90b;color:#202630;">BN</span>Binance</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#1652f0;">CB</span>Coinbase</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#5741d9;">KR</span>Kraken</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#fcd535;color:#202630;">BY</span>Bybit</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#000;">OK</span>OKX</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#24ae8f;">KU</span>KuCoin</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#2e7dd7;">HT</span>HTX</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#e6390b;">GT</span>Gate.io</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#8fc93a;color:#202630;">BF</span>Bitfinex</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#00b4e6;">BS</span>Bitstamp</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#00dcfa;color:#202630;">GM</span>Gemini</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#03a9f4;">CC</span>Crypto.com</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#0064ff;">MX</span>MEXC</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#00f0ff;color:#202630;">BG</span>Bitget</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#00b090;">PL</span>Poloniex</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#e2141a;">BM</span>BitMEX</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#0f9dd7;">DB</span>Deribit</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#0f3494;">UB</span>Upbit</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#f7931a;color:#202630;">BH</span>Bithumb</div>
+                    <div class="ticker-item"><span class="ticker-icon round" style="background:#2f56d2;">WX</span>WazirX</div>
+                </div>
+            </div>
+
         </div>
-    </div>
 
-    <div class="signup-row">
-        <input type="text" placeholder="Email/Phone number">
-        <button onclick="window.location.href='signup.html'">Sign Up</button>
-    </div>
-
-    <div class="ticker-wrap">
-        <div class="ticker-track" id="ticker-track">
-            <div class="ticker-item"><span class="ticker-icon">&#9733;</span>Recognized as <b>Forbes' Most Trusted Crypto Exchange 2025</b></div>
-            <div class="ticker-item"><span class="ticker-icon">&#9733;</span>Named <b>CNBC's World's Top Fintech Company 2025</b> in Digital Assets</div>
-            <div class="ticker-item"><span class="ticker-icon">&#9733;</span>Named a <b>CeFi Leader</b> in Fortune Crypto 100's Most Influential Companies in Blockchain</div>
-            <div class="ticker-item"><span class="ticker-icon">&#9733;</span><b>Funds are SAFU</b> — protecting your assets is our top priority</div>
+        <div class="crypto-panel">
+            <div class="crypto-tabs">
+                <span class="active">Top 100 Cryptocurrencies</span>
+            </div>
+            <div id="crypto-list">
+                <p style="text-align:center; color:#848e9c;">Loading live prices...</p>
+            </div>
         </div>
+
+        <section class="welcome-section" id="about">
+            <div class="welcome-graphic">
+                <svg viewBox="0 0 180 180" width="180" height="180">
+                    <circle cx="90" cy="95" r="70" fill="none" stroke="#f0b90b" stroke-width="1.5" opacity="0.9"/>
+                    <ellipse cx="90" cy="95" rx="70" ry="28" fill="none" stroke="#f0b90b" stroke-width="1" opacity="0.6"/>
+                    <ellipse cx="90" cy="95" rx="70" ry="50" fill="none" stroke="#f0b90b" stroke-width="1" opacity="0.6"/>
+                    <line x1="20" y1="95" x2="160" y2="95" stroke="#f0b90b" stroke-width="1" opacity="0.6"/>
+                    <line x1="90" y1="25" x2="90" y2="165" stroke="#f0b90b" stroke-width="1" opacity="0.6"/>
+                    <line x1="35" y1="55" x2="145" y2="135" stroke="#f0b90b" stroke-width="1" opacity="0.4"/>
+                    <line x1="35" y1="135" x2="145" y2="55" stroke="#f0b90b" stroke-width="1" opacity="0.4"/>
+                </svg>
+                <div class="badge-heart">&#9825;</div>
+                <div class="badge-sparkle">&#10022;</div>
+            </div>
+            <h2>Welcome to Crypto World</h2>
+            <p class="welcome-desc">At Crypto World, we believe that everyone should have the freedom to earn, hold, spend, share and give their money - no matter who you are or where you come from.</p>
+            <div class="welcome-stats">
+                <div class="stat-col">
+                    <div class="stat-icon">&#128179;</div>
+                    <div class="stat-num">$65 bn</div>
+                    <div class="stat-label">Average daily<br>volume</div>
+                </div>
+                <div class="stat-col">
+                    <div class="stat-icon">&#10022;</div>
+                    <div class="stat-num">300 bn</div>
+                    <div class="stat-label">Spot transactions<br>in 2022</div>
+                </div>
+                <div class="stat-col">
+                    <div class="stat-icon">&#128100;</div>
+                    <div class="stat-num">24/7</div>
+                    <div class="stat-label">Customer Support<br>in 40 languages</div>
+                </div>
+            </div>
+        </section>
+        <section class="page-section" id="services">
+            <h2>Our Services</h2>
+            <ul class="services-list">
+                <li>Affiliate</li>
+                <li>Referral</li>
+                <li>BTC</li>
+                <li>OTC &amp; Execution Services</li>
+                <li>Historical Market Data</li>
+                <li>Trading Insight</li>
+                <li>Proof of Reserves</li>
+            </ul>
+        </section>
+        <section class="page-section" id="contact">
+            <h2>Contact Us</h2>
+            <p>Email: cryptoworld@email.com</p>
+            <div class="social-row">
+                <a href="#" class="social-badge" style="background:#1877f2;">f</a>
+                <a href="#" class="social-badge" style="background:#000000;">X</a>
+                <a href="#" class="social-badge" style="background:#e4405f;">IG</a>
+                <a href="#" class="social-badge" style="background:#ff0000;">YT</a>
+                <a href="#" class="social-badge" style="background:#0a66c2;">in</a>
+                <a href="#" class="social-badge" style="background:#000000;">TT</a>
+                <a href="#" class="social-badge" style="background:#26a5e4;">TG</a>
+                <a href="#" class="social-badge" style="background:#25d366;">WA</a>
+                <a href="#" class="social-badge" style="background:#5865f2;">DC</a>
+                <a href="#" class="social-badge" style="background:#ff4500;">R</a>
+            </div>
+        </section>
+
+        <footer>
+            <p>© 2026 Crypto World. All rights reserved.</p>
+        </footer>
     </div>
 
-    <div class="ticker-wrap">
-        <div class="ticker-track ticker-track-slow" id="ticker-track-2">
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#555;">AAPL</span>Apple</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#4285f4;">GOOG</span>Google</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#00a4ef;">MSFT</span>Microsoft</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#ff9900;">AMZN</span>Amazon</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#e50914;">TSLA</span>Tesla</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#76b900;">NVDA</span>NVIDIA</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#1877f2;">META</span>Meta</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#e50914;">NFLX</span>Netflix</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#1a1f71;">V</span>Visa</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#eb001b;">MA</span>Mastercard</div>
+    <!-- ================= জাভাস্ক্রিপ্ট (লক স্ক্রিন এবং মূল ওয়েবসাইট) ================= -->
+    <script>
+        // 🔐 আপনার পছন্দের পিন এখানে সেট করুন (যেমন: "1234")
+        const CORRECT_PIN = "1234"; 
+        let enteredPin = "";
 
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#f0b90b;color:#202630;">BN</span>Binance</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#1652f0;">CB</span>Coinbase</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#5741d9;">KR</span>Kraken</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#fcd535;color:#202630;">BY</span>Bybit</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#000;">OK</span>OKX</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#24ae8f;">KU</span>KuCoin</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#2e7dd7;">HT</span>HTX</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#e6390b;">GT</span>Gate.io</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#8fc93a;color:#202630;">BF</span>Bitfinex</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#00b4e6;">BS</span>Bitstamp</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#00dcfa;color:#202630;">GM</span>Gemini</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#03a9f4;">CC</span>Crypto.com</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#0064ff;">MX</span>MEXC</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#00f0ff;color:#202630;">BG</span>Bitget</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#00b090;">PL</span>Poloniex</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#e2141a;">BM</span>BitMEX</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#0f9dd7;">DB</span>Deribit</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#0f3494;">UB</span>Upbit</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#f7931a;color:#202630;">BH</span>Bithumb</div>
-            <div class="ticker-item"><span class="ticker-icon round" style="background:#2f56d2;">WX</span>WazirX</div>
-        </div>
-    </div>
+        const pinDots = document.querySelectorAll('.pin-dot');
+        const lockScreen = document.getElementById('lock-screen');
+        const mainContent = document.getElementById('main-content');
 
-</div>
+        function updateDots() {
+            pinDots.forEach((dot, index) => {
+                if (index < enteredPin.length) {
+                    dot.classList.add('filled');
+                } else {
+                    dot.classList.remove('filled');
+                }
+            });
+        }
 
-<div class="crypto-panel">
-    <div class="crypto-tabs">
-        <span class="active">Top 100 Cryptocurrencies</span>
-    </div>
-    <div id="crypto-list">
-        <p style="text-align:center; color:#848e9c;">Loading live prices...</p>
-    </div>
-</div>
+        function enterPin(num) {
+            if (enteredPin.length < 4) {
+                enteredPin += num;
+                updateDots();
+            }
 
-<section class="welcome-section" id="about">
-    <div class="welcome-graphic">
-        <svg viewBox="0 0 180 180" width="180" height="180">
-            <circle cx="90" cy="95" r="70" fill="none" stroke="#f0b90b" stroke-width="1.5" opacity="0.9"/>
-            <ellipse cx="90" cy="95" rx="70" ry="28" fill="none" stroke="#f0b90b" stroke-width="1" opacity="0.6"/>
-            <ellipse cx="90" cy="95" rx="70" ry="50" fill="none" stroke="#f0b90b" stroke-width="1" opacity="0.6"/>
-            <line x1="20" y1="95" x2="160" y2="95" stroke="#f0b90b" stroke-width="1" opacity="0.6"/>
-            <line x1="90" y1="25" x2="90" y2="165" stroke="#f0b90b" stroke-width="1" opacity="0.6"/>
-            <line x1="35" y1="55" x2="145" y2="135" stroke="#f0b90b" stroke-width="1" opacity="0.4"/>
-            <line x1="35" y1="135" x2="145" y2="55" stroke="#f0b90b" stroke-width="1" opacity="0.4"/>
-        </svg>
-        <div class="badge-heart">&#9825;</div>
-        <div class="badge-sparkle">&#10022;</div>
-    </div>
-    <h2>Welcome to Crypto World</h2>
-    <p class="welcome-desc">At Crypto World, we believe that everyone should have the freedom to earn, hold, spend, share and give their money - no matter who you are or where you come from.</p>
-    <div class="welcome-stats">
-        <div class="stat-col">
-            <div class="stat-icon">&#128179;</div>
-            <div class="stat-num">$65 bn</div>
-            <div class="stat-label">Average daily<br>volume</div>
-        </div>
-        <div class="stat-col">
-            <div class="stat-icon">&#10022;</div>
-            <div class="stat-num">300 bn</div>
-            <div class="stat-label">Spot transactions<br>in 2022</div>
-        </div>
-        <div class="stat-col">
-            <div class="stat-icon">&#128100;</div>
-            <div class="stat-num">24/7</div>
-            <div class="stat-label">Customer Support<br>in 40 languages</div>
-        </div>
-    </div>
-</section>
-<section class="page-section" id="services">
-    <h2>Our Services</h2>
-    <ul class="services-list">
-        <li>Affiliate</li>
-        <li>Referral</li>
-        <li>BTC</li>
-        <li>OTC &amp; Execution Services</li>
-        <li>Historical Market Data</li>
-        <li>Trading Insight</li>
-        <li>Proof of Reserves</li>
-    </ul>
-</section>
-<section class="page-section" id="contact">
-    <h2>Contact Us</h2>
-    <p>Email: cryptoworld@email.com</p>
-    <div class="social-row">
-        <a href="#" class="social-badge" style="background:#1877f2;">f</a>
-        <a href="#" class="social-badge" style="background:#000000;">X</a>
-        <a href="#" class="social-badge" style="background:#e4405f;">IG</a>
-        <a href="#" class="social-badge" style="background:#ff0000;">YT</a>
-        <a href="#" class="social-badge" style="background:#0a66c2;">in</a>
-        <a href="#" class="social-badge" style="background:#000000;">TT</a>
-        <a href="#" class="social-badge" style="background:#26a5e4;">TG</a>
-        <a href="#" class="social-badge" style="background:#25d366;">WA</a>
-        <a href="#" class="social-badge" style="background:#5865f2;">DC</a>
-        <a href="#" class="social-badge" style="background:#ff4500;">R</a>
-    </div>
-</section>
+            if (enteredPin.length === 4) {
+                if (enteredPin === CORRECT_PIN) {
+                    setTimeout(() => {
+                        lockScreen.style.display = 'none';
+                        mainContent.style.display = 'block';
+                        // ওয়েবসাইটের অন্যান্য ফাংশন লোড হবে
+                        initializeWebsite();
+                    }, 300);
+                } else {
+                    // ভুল পিন দিলে
+                    setTimeout(() => {
+                        alert("❌ Incorrect PIN! Try again.");
+                        enteredPin = "";
+                        updateDots();
+                    }, 300);
+                }
+            }
+        }
 
-<footer>
-    <p>© 2026 Crypto World. All rights reserved.</p>
-</footer>
+        function deletePin() {
+            if (enteredPin.length > 0) {
+                enteredPin = enteredPin.slice(0, -1);
+                updateDots();
+            }
+        }
 
-<script>
-let customerCount = 330160532;
-const customerCountEl = document.getElementById('customer-count');
-setInterval(() => {
-  customerCount += 1;
-  customerCountEl.textContent = customerCount.toLocaleString('en-US');
-}, 3000);
+        // পিন সেট হয়ে গেলে মূল ওয়েবসাইটের কোডগুলো লোড হবে
+        function initializeWebsite() {
+            // এখানে আপনার আগের index.html এর সমস্ত জাভাস্ক্রিপ্ট কোড বসবে।
+            // আমি নিচে সেটি দিয়ে দিচ্ছি।
+            
+            let customerCount = 330160532;
+            const customerCountEl = document.getElementById('customer-count');
+            setInterval(() => {
+                customerCount += 1;
+                customerCountEl.textContent = customerCount.toLocaleString('en-US');
+            }, 3000);
 
-(function duplicateTicker() {
-  const track = document.getElementById('ticker-track');
-  track.innerHTML += track.innerHTML;
-})();
-(function duplicateTicker2() {
-  const track = document.getElementById('ticker-track-2');
-  track.innerHTML += track.innerHTML;
-})();
+            (function duplicateTicker() {
+                const track = document.getElementById('ticker-track');
+                track.innerHTML += track.innerHTML;
+            })();
+            (function duplicateTicker2() {
+                const track = document.getElementById('ticker-track-2');
+                track.innerHTML += track.innerHTML;
+            })();
 
-// ★★★ CoinLore API-এর জন্য কয়েন লিস্ট ★★★
-const coinList = [
-  { symbol: 'BTC', name: 'Bitcoin' },
-  { symbol: 'ETH', name: 'Ethereum' },
-  { symbol: 'BNB', name: 'BNB' },
-  { symbol: 'SOL', name: 'Solana' },
-  { symbol: 'XRP', name: 'XRP' },
-  { symbol: 'ADA', name: 'Cardano' },
-  { symbol: 'DOGE', name: 'Dogecoin' },
-  { symbol: 'TRX', name: 'TRON' },
-  { symbol: 'TON', name: 'Toncoin' },
-  { symbol: 'DOT', name: 'Polkadot' },
-  { symbol: 'MATIC', name: 'Polygon' },
-  { symbol: 'LTC', name: 'Litecoin' },
-  { symbol: 'SHIB', name: 'Shiba Inu' },
-  { symbol: 'AVAX', name: 'Avalanche' },
-  { symbol: 'LINK', name: 'Chainlink' },
-  { symbol: 'BCH', name: 'Bitcoin Cash' },
-  { symbol: 'ATOM', name: 'Cosmos' },
-  { symbol: 'XLM', name: 'Stellar' },
-  { symbol: 'UNI', name: 'Uniswap' },
-  { symbol: 'ETC', name: 'Ethereum Classic' },
-  { symbol: 'FIL', name: 'Filecoin' },
-  { symbol: 'APT', name: 'Aptos' },
-  { symbol: 'ARB', name: 'Arbitrum' },
-  { symbol: 'OP', name: 'Optimism' },
-  { symbol: 'NEAR', name: 'NEAR Protocol' },
-  { symbol: 'VET', name: 'VeChain' },
-  { symbol: 'HBAR', name: 'Hedera' },
-  { symbol: 'ICP', name: 'Internet Computer' },
-  { symbol: 'ALGO', name: 'Algorand' },
-  { symbol: 'AAVE', name: 'Aave' },
-  { symbol: 'MKR', name: 'Maker' },
-  { symbol: 'GRT', name: 'The Graph' },
-  { symbol: 'SAND', name: 'The Sandbox' },
-  { symbol: 'MANA', name: 'Decentraland' },
-  { symbol: 'AXS', name: 'Axie Infinity' },
-  { symbol: 'EOS', name: 'EOS' },
-  { symbol: 'FTM', name: 'Fantom' },
-  { symbol: 'THETA', name: 'Theta Network' },
-  { symbol: 'XTZ', name: 'Tezos' },
-  { symbol: 'EGLD', name: 'MultiversX' },
-  { symbol: 'KAVA', name: 'Kava' },
-  { symbol: 'RUNE', name: 'THORChain' },
-  { symbol: 'CHZ', name: 'Chiliz' },
-  { symbol: 'ENJ', name: 'Enjin Coin' },
-  { symbol: 'ZEC', name: 'Zcash' },
-  { symbol: 'DASH', name: 'Dash' },
-  { symbol: 'COMP', name: 'Compound' },
-  { symbol: 'SNX', name: 'Synthetix' },
-  { symbol: 'CRV', name: 'Curve DAO' },
-  { symbol: 'YFI', name: 'yearn.finance' },
-  { symbol: '1INCH', name: '1inch' },
-  { symbol: 'BAT', name: 'Basic Attention' },
-  { symbol: 'ZIL', name: 'Zilliqa' },
-  { symbol: 'IOTA', name: 'IOTA' },
-  { symbol: 'NEO', name: 'NEO' },
-  { symbol: 'QTUM', name: 'Qtum' },
-  { symbol: 'WAVES', name: 'Waves' },
-  { symbol: 'KSM', name: 'Kusama' },
-  { symbol: 'ONT', name: 'Ontology' },
-  { symbol: 'ICX', name: 'ICON' },
-  { symbol: 'ZRX', name: '0x Protocol' },
-  { symbol: 'REN', name: 'Ren' },
-  { symbol: 'STORJ', name: 'Storj' },
-  { symbol: 'ANKR', name: 'Ankr' },
-  { symbol: 'CELR', name: 'Celer Network' },
-  { symbol: 'CTSI', name: 'Cartesi' },
-  { symbol: 'SKL', name: 'SKALE' },
-  { symbol: 'SUSHI', name: 'SushiSwap' },
-  { symbol: 'LRC', name: 'Loopring' },
-  { symbol: 'KNC', name: 'Kyber Network' },
-  { symbol: 'BAND', name: 'Band Protocol' },
-  { symbol: 'RSR', name: 'Reserve Rights' },
-  { symbol: 'OCEAN', name: 'Ocean Protocol' },
-  { symbol: 'CVC', name: 'Civic' },
-  { symbol: 'DGB', name: 'DigiByte' },
-  { symbol: 'SC', name: 'Siacoin' },
-  { symbol: 'RVN', name: 'Ravencoin' },
-  { symbol: 'BTT', name: 'BitTorrent' },
-  { symbol: 'WIN', name: 'WINkLink' },
-  { symbol: 'HOT', name: 'Holo' },
-  { symbol: 'STMX', name: 'StormX' },
-  { symbol: 'DENT', name: 'Dent' },
-  { symbol: 'VTHO', name: 'VeThor Token' },
-  { symbol: 'IOST', name: 'IOST' },
-  { symbol: 'ONE', name: 'Harmony' },
-  { symbol: 'HIVE', name: 'Hive' },
-  { symbol: 'STEEM', name: 'Steem' },
-  { symbol: 'WAXP', name: 'WAX' },
-  { symbol: 'FLOW', name: 'Flow' },
-  { symbol: 'KLAY', name: 'Klaytn' },
-  { symbol: 'MINA', name: 'Mina Protocol' },
-  { symbol: 'ROSE', name: 'Oasis Network' },
-  { symbol: 'GALA', name: 'Gala' },
-  { symbol: 'IMX', name: 'Immutable X' },
-  { symbol: 'LDO', name: 'Lido DAO' },
-  { symbol: 'INJ', name: 'Injective' },
-  { symbol: 'SEI', name: 'Sei' },
-  { symbol: 'SUI', name: 'Sui' },
-  { symbol: 'PEPE', name: 'Pepe' }
-];
+            // ★★★ CoinLore API-এর জন্য কয়েন লিস্ট ★★★
+            const coinList = [
+                { symbol: 'BTC', name: 'Bitcoin' }, { symbol: 'ETH', name: 'Ethereum' }, { symbol: 'BNB', name: 'BNB' },
+                { symbol: 'SOL', name: 'Solana' }, { symbol: 'XRP', name: 'XRP' }, { symbol: 'ADA', name: 'Cardano' },
+                { symbol: 'DOGE', name: 'Dogecoin' }, { symbol: 'TRX', name: 'TRON' }, { symbol: 'TON', name: 'Toncoin' },
+                { symbol: 'DOT', name: 'Polkadot' }, { symbol: 'MATIC', name: 'Polygon' }, { symbol: 'LTC', name: 'Litecoin' }
+            ];
 
-// ★★★ ডেটা ক্যাশে (সিমুলেশনের জন্য) ★★★
-let cryptoDataCache = [];
+            let cryptoDataCache = [];
 
-// ★★★ আসল ডেটা লোড (প্রতি ৩০ সেকেন্ডে) ★★★
-async function loadCrypto() {
-  const listEl = document.getElementById('crypto-list');
-  try {
-    const res = await fetch('https://api.coinlore.net/api/tickers/?limit=100');
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const json = await res.json();
-    const data = json.data;
+            async function loadCrypto() {
+                const listEl = document.getElementById('crypto-list');
+                try {
+                    const res = await fetch('https://api.coinlore.net/api/tickers/?limit=100');
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    const json = await res.json();
+                    const data = json.data;
 
-    cryptoDataCache = coinList.map(coinInfo => {
-      const item = data.find(d => d.symbol === coinInfo.symbol);
-      if (!item) return null;
-      return {
-        symbol: coinInfo.symbol,
-        name: coinInfo.name,
-        price: parseFloat(item.price_usd),
-        basePrice: parseFloat(item.price_usd),
-        changePercent: parseFloat(item.percent_change_24h),
-        baseChangePercent: parseFloat(item.percent_change_24h)
-      };
-    }).filter(Boolean);
+                    cryptoDataCache = coinList.map(coinInfo => {
+                        const item = data.find(d => d.symbol === coinInfo.symbol);
+                        if (!item) return null;
+                        return {
+                            symbol: coinInfo.symbol, name: coinInfo.name,
+                            price: parseFloat(item.price_usd), basePrice: parseFloat(item.price_usd),
+                            changePercent: parseFloat(item.percent_change_24h), baseChangePercent: parseFloat(item.percent_change_24h)
+                        };
+                    }).filter(Boolean);
 
-    renderCryptoList();
-  } catch (err) {
-    console.error(err);
-    if (cryptoDataCache.length === 0) {
-      listEl.innerHTML = '<p style="text-align:center;color:#f6465d;">Could not load prices right now. Please refresh the page in a moment.</p>';
-    }
-  }
-}
+                    renderCryptoList();
+                } catch (err) {
+                    console.error(err);
+                    if (cryptoDataCache.length === 0) {
+                        listEl.innerHTML = '<p style="text-align:center;color:#f6465d;">Could not load prices right now. Please refresh the page in a moment.</p>';
+                    }
+                }
+            }
 
-// ★★★ লিস্ট রেন্ডার ★★★
-function renderCryptoList() {
-  const listEl = document.getElementById('crypto-list');
-  listEl.innerHTML = '';
+            function renderCryptoList() {
+                const listEl = document.getElementById('crypto-list');
+                listEl.innerHTML = '';
+                cryptoDataCache.forEach(coinInfo => {
+                    const changeUp = coinInfo.changePercent >= 0;
+                    const changeClass = changeUp ? 'crypto-change-up' : 'crypto-change-down';
+                    const changeSign = changeUp ? '+' : '';
+                    const iconUrl = 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/' + coinInfo.symbol.toLowerCase() + '.png';
 
-  cryptoDataCache.forEach(coinInfo => {
-    const changeUp = coinInfo.changePercent >= 0;
-    const changeClass = changeUp ? 'crypto-change-up' : 'crypto-change-down';
-    const changeSign = changeUp ? '+' : '';
-    const iconUrl = 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/' + coinInfo.symbol.toLowerCase() + '.png';
+                    const card = document.createElement('div');
+                    card.className = 'crypto-card';
+                    card.dataset.symbol = coinInfo.symbol;
+                    card.innerHTML = `
+                        <div class="crypto-left">
+                            <img src="${iconUrl}" alt="${coinInfo.name}" onerror="this.style.visibility='hidden'">
+                            <div><div class="crypto-name">${coinInfo.symbol} <span class="crypto-symbol">${coinInfo.name}</span></div></div>
+                        </div>
+                        <div class="crypto-right" style="display:flex; gap:24px; align-items:center;">
+                            <div class="crypto-price">$${coinInfo.price.toLocaleString(undefined, {maximumFractionDigits: 4})}</div>
+                            <div class="${changeClass}">${changeSign}${coinInfo.changePercent.toFixed(2)}%</div>
+                        </div>`;
+                    listEl.appendChild(card);
+                });
+            }
 
-    const card = document.createElement('div');
-    card.className = 'crypto-card';
-    card.dataset.symbol = coinInfo.symbol;
-    card.innerHTML = `
-      <div class="crypto-left">
-        <img src="${iconUrl}" alt="${coinInfo.name}" onerror="this.style.visibility='hidden'">
-        <div>
-          <div class="crypto-name">${coinInfo.symbol} <span class="crypto-symbol">${coinInfo.name}</span></div>
-        </div>
-      </div>
-      <div class="crypto-right" style="display:flex; gap:24px; align-items:center;">
-        <div class="crypto-price">$${coinInfo.price.toLocaleString(undefined, {maximumFractionDigits: 4})}</div>
-        <div class="${changeClass}">${changeSign}${coinInfo.changePercent.toFixed(2)}%</div>
-      </div>`;
-    listEl.appendChild(card);
-  });
-}
+            function simulateLiveUpdate() {
+                if (cryptoDataCache.length === 0) return;
+                cryptoDataCache.forEach(coin => {
+                    const randomFactor = (Math.random() - 0.5) * 0.001;
+                    coin.price = coin.basePrice * (1 + randomFactor);
+                    coin.changePercent = coin.baseChangePercent + (randomFactor * 100);
 
-// ★★★ প্রতি ৩ সেকেন্ডে সিমুলেটেড দাম পরিবর্তন ★★★
-function simulateLiveUpdate() {
-  if (cryptoDataCache.length === 0) return;
-  cryptoDataCache.forEach(coin => {
-    const randomFactor = (Math.random() - 0.5) * 0.001;
-    coin.price = coin.basePrice * (1 + randomFactor);
-    coin.changePercent = coin.baseChangePercent + (randomFactor * 100);
+                    const card = document.querySelector(`.crypto-card[data-symbol="${coin.symbol}"]`);
+                    if (card) {
+                        const priceEl = card.querySelector('.crypto-price');
+                        const changeEl = card.querySelector('.crypto-change-up, .crypto-change-down');
+                        if (priceEl) priceEl.textContent = '$' + coin.price.toLocaleString(undefined, {maximumFractionDigits: 4});
+                        if (changeEl) {
+                            const up = coin.changePercent >= 0;
+                            changeEl.className = up ? 'crypto-change-up' : 'crypto-change-down';
+                            changeEl.textContent = (up ? '+' : '') + coin.changePercent.toFixed(2) + '%';
+                        }
+                    }
+                });
+            }
 
-    const card = document.querySelector(`.crypto-card[data-symbol="${coin.symbol}"]`);
-    if (card) {
-      const priceEl = card.querySelector('.crypto-price');
-      const changeEl = card.querySelector('.crypto-change-up, .crypto-change-down');
-      if (priceEl) priceEl.textContent = '$' + coin.price.toLocaleString(undefined, {maximumFractionDigits: 4});
-      if (changeEl) {
-        const up = coin.changePercent >= 0;
-        changeEl.className = up ? 'crypto-change-up' : 'crypto-change-down';
-        changeEl.textContent = (up ? '+' : '') + coin.changePercent.toFixed(2) + '%';
-      }
-    }
-  });
-}
-
-// ★★★ শুরু করা ★★★
-loadCrypto();
-setInterval(loadCrypto, 30000);       // আসল ডেটা প্রতি ৩০ সেকেন্ডে
-setInterval(simulateLiveUpdate, 3000); // সিমুলেটেড আপডেট প্রতি ৩ সেকেন্ডে
-</script>
-
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyDJoPr8RvE1xkNTKRr5kwTx6E51GCMn_HE",
-  authDomain: "abc-company-6272a.firebaseapp.com",
-  projectId: "abc-company-6272a",
-  storageBucket: "abc-company-6272a.firebasestorage.app",
-  messagingSenderId: "1026212780106",
-  appId: "1:1026212780106:web:985ec1bc35837d6320eeb3"
-};
-firebase.initializeApp(firebaseConfig);
-
-firebase.auth().onAuthStateChanged(user => {
-  if (user) {
-    window.location.href = 'market.html';
-  }
-});
-</script>
-
+            loadCrypto();
+            setInterval(loadCrypto, 30000);
+            setInterval(simulateLiveUpdate, 3000);
+        }
+    </script>
 </body>
 </html>
