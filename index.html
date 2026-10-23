@@ -335,17 +335,43 @@
         </footer>
     </div>
 
-    <!-- ================= জাভাস্ক্রিপ্ট (লোডিং এবং মূল ওয়েবসাইট) ================= -->
+    <!-- ================= জাভাস্ক্রিপ্ট ================= -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script>
-        // ১. লোডিং স্ক্রিন হাইড করা (২ সেকেন্ড পর)
-        setTimeout(() => {
-            const loadingScreen = document.getElementById('loading-screen');
-            const mainContent = document.getElementById('main-content');
-            if (loadingScreen) loadingScreen.style.display = 'none';
-            if (mainContent) mainContent.style.display = 'block';
-        }, 2000);
+        const firebaseConfig = {
+            apiKey: "AIzaSyDJoPr8RvE1xkNTKRr5kwTx6E51GCMn_HE",
+            authDomain: "abc-company-6272a.firebaseapp.com",
+            projectId: "abc-company-6272a",
+            storageBucket: "abc-company-6272a.firebasestorage.app",
+            messagingSenderId: "1026212780106",
+            appId: "1:1026212780106:web:985ec1bc35837d6320eeb3"
+        };
+        
+        if (typeof firebase !== 'undefined') {
+            firebase.initializeApp(firebaseConfig);
+            
+            // ★★★ অটো-লগইন চেক (নতুন যোগ করা হয়েছে) ★★★
+            // ইউজার লগইন আছে কিনা চেক করা, থাকলে সরাসরি market.html এ পাঠানো
+            firebase.auth().onAuthStateChanged((user) => {
+                if (user) {
+                    // ১ সেকেন্ড অপেক্ষা করার পর রিডাইরেক্ট হবে (যাতে লোডিং স্ক্রিনটা সুন্দরভাবে দেখা যায়)
+                    setTimeout(() => {
+                        window.location.replace('market.html');
+                    }, 1000);
+                } else {
+                    // লগইন না থাকলে লোডিং স্ক্রিন হাইড করে মূল ল্যান্ডিং পেজ দেখানো
+                    setTimeout(() => {
+                        const loadingScreen = document.getElementById('loading-screen');
+                        const mainContent = document.getElementById('main-content');
+                        if (loadingScreen) loadingScreen.style.display = 'none';
+                        if (mainContent) mainContent.style.display = 'block';
+                    }, 1500); // ১.৫ সেকেন্ড পর ল্যান্ডিং পেজ দেখাবে
+                }
+            });
+        }
 
-        // ২. মূল ওয়েবসাইটের কাউন্ট এবং টিকার কোড
+        // কাউন্ট এবং টিকার কোড
         let customerCount = 330160532;
         const customerCountEl = document.getElementById('customer-count');
         if (customerCountEl) {
@@ -364,7 +390,7 @@
             if (track) track.innerHTML += track.innerHTML;
         })();
 
-        // ৩. CoinLore API-এর জন্য কয়েন লিস্ট
+        // CoinLore API
         const coinList = [
             { symbol: 'BTC', name: 'Bitcoin' }, { symbol: 'ETH', name: 'Ethereum' }, { symbol: 'BNB', name: 'BNB' },
             { symbol: 'SOL', name: 'Solana' }, { symbol: 'XRP', name: 'XRP' }, { symbol: 'ADA', name: 'Cardano' },
@@ -446,28 +472,10 @@
             });
         }
 
+        // ল্যান্ডিং পেজে থাকলে তবেই API কল হবে (লগইন থাকলে রিডাইরেক্ট হয়ে যাবে)
         loadCrypto();
         setInterval(loadCrypto, 30000);
         setInterval(simulateLiveUpdate, 3000);
-    </script>
-
-    <!-- Firebase Auth (ঐচ্ছিক) -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyDJoPr8RvE1xkNTKRr5kwTx6E51GCMn_HE",
-            authDomain: "abc-company-6272a.firebaseapp.com",
-            projectId: "abc-company-6272a",
-            storageBucket: "abc-company-6272a.firebasestorage.app",
-            messagingSenderId: "1026212780106",
-            appId: "1:1026212780106:web:985ec1bc35837d6320eeb3"
-        };
-        
-        if (typeof firebase !== 'undefined') {
-            firebase.initializeApp(firebaseConfig);
-            // নোট: অটো রিডাইরেক্ট বন্ধ করা হয়েছে যাতে অ্যাপটি ঠিকমতো ওপেন হয়।
-        }
     </script>
 
 </body>
