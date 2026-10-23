@@ -13,7 +13,6 @@
   .msg { text-align:center; margin-top:10px; font-size:14px; }
   a { color:#f0b90b; }
   
-  /* লোডিং স্পিনার (যখন ফায়ারবেস চেক করছে) */
   #loading-overlay { position:fixed; inset:0; background:#0b0e11; display:flex; align-items:center; justify-content:center; z-index:9999; }
   .spinner { width:40px; height:40px; border:4px solid #1e2329; border-top:4px solid #f0b90b; border-radius:50%; animation:spin 1s linear infinite; }
   @keyframes spin { 100% { transform:rotate(360deg); } }
@@ -21,7 +20,6 @@
 </head>
 <body>
 
-<!-- পেজ লোড হওয়ার সময় স্ক্রিন ঢেকে রাখবে -->
 <div id="loading-overlay"><div class="spinner"></div></div>
 
 <div class="box" style="display:none;" id="login-box">
@@ -48,7 +46,6 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 
-// ★★★ ১. সেশন সেভ রাখার চেষ্টা (LOCAL -> SESSION -> NONE) ★★★
 async function setBestAvailablePersistence() {
   try {
     await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
@@ -61,8 +58,6 @@ async function setBestAvailablePersistence() {
   }
 }
 
-// ★★★ ২. অটো-লগইন চেক (সবচেয়ে জরুরি) ★★★
-// পেজ লোড হওয়ার সাথে সাথে চেক করবে ইউজার লগইন করা আছে কিনা।
 setBestAvailablePersistence().then(() => {
   firebase.auth().onAuthStateChanged((user) => {
     const loadingOverlay = document.getElementById('loading-overlay');
@@ -82,7 +77,6 @@ setBestAvailablePersistence().then(() => {
   });
 });
 
-// মোবাইল কীবোর্ডের জন্য স্ক্রল ফিক্স
 document.querySelectorAll('.box input').forEach(input => {
   input.addEventListener('focus', () => {
     setTimeout(() => {
@@ -91,7 +85,6 @@ document.querySelectorAll('.box input').forEach(input => {
   });
 });
 
-// ★★★ ৩. লগইন ফাংশন ★★★
 function logIn() {
   const identifier = document.getElementById('phone').value.trim();
   const password = document.getElementById('password').value;
@@ -113,7 +106,7 @@ function logIn() {
       const destination = (cred.user.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase()
         ? 'admin.html'
         : 'market.html';
-      window.location.replace(destination); // replace ব্যবহার করলে ব্যাক বাটনে লগইন পেজে ফিরবে না
+      window.location.replace(destination);
     })
     .catch(err => {
       msg.style.color = 'red';
