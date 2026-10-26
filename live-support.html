@@ -145,7 +145,6 @@
   }
   .msg .tick{ font-size:11px; }
 
-  /* --- Image preview styles --- */
   .msg-image{
     max-width:100%;
     border-radius:10px;
@@ -319,7 +318,6 @@
   </div>
 
   <div class="composer" id="composer" style="display:none;">
-    <!-- Hidden file input for image selection -->
     <input type="file" id="imageInput" accept="image/*" style="display:none;">
     <button class="attach-btn" id="attachBtn" title="Attach image">📎</button>
     <input id="msgInput" type="text" placeholder="Type a message…" maxlength="1000">
@@ -329,10 +327,9 @@
 
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script>
-  // ====== ১. এখানে আপনার নিজের Firebase কনফিগ বসান ======
+  // ====== ১. আপনার Firebase কনফিগ ======
   const firebaseConfig = {
     apiKey: "AIzaSyDJoPr8RvE1xkNTKRr5kwTx6E51GCMn_HE",
     authDomain: "abc-company-6272a.firebaseapp.com",
@@ -341,11 +338,13 @@
     messagingSenderId: "1026212780106",
     appId: "1:1026212780106:web:985ec1bc35837d6320eeb3"
   };
-  // =======================================================
+  
+  // ★★★ ২. এখানে আপনার ImgBB API Key বসান ★★★
+  const IMGBB_API_KEY = '0dae5f846c7bc79071442d3c548697fc';
+  // ==============================================
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
-  const storage = firebase.storage();
 
   // ====== আসল ভিজিবল উচ্চতা ট্র্যাক করা ======
   function setAppHeight(){
@@ -598,16 +597,15 @@
     }, delay);
   }
 
-  // ====== ছবি আপলোডের ফাংশন ======
+  // ====== ImgBB ছবি আপলোড ======
   attachBtn.addEventListener('click', () => imageInput.click());
 
   imageInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // ফাইল সাইজ চেক (৫MB সর্বোচ্চ)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('ছবিটি ৫ মেগাবাইটের বেশি। ছোট সাইজের ছবি নির্বাচন করুন।');
+    if (file.size > 32 * 1024 * 1024) {
+      alert('ছবিটি ৩২ মেগাবাইটের বেশি। ছোট সাইজের ছবি নির্বাচন করুন।');
       return;
     }
 
@@ -615,15 +613,22 @@
     const isFirstMessage = !botGreetingSent;
     if (isFirstMessage) botGreetingSent = true;
 
-    // আপলোড শুরু (বাটন ডিজেবল)
     attachBtn.disabled = true;
     attachBtn.textContent = '⏳';
 
     try {
-      const storageRef = storage.ref();
-      const imgRef = storageRef.child(`support/${chatId}/${Date.now()}_${file.name}`);
-      const snapshot = await imgRef.put(file);
-      const downloadUrl = await snapshot.ref.getDownloadURL();
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await res.json();
+      if (!data.success) throw new Error('Upload failed');
+      
+      const downloadUrl = data.data.url;
 
       await msgsRef.add({
         sender: 'customer',
@@ -643,7 +648,7 @@
 
     } catch (err) {
       console.error('Image upload failed:', err);
-      alert('ছবি পাঠানো যায়নি। Firebase Storage Rules চেক করুন।');
+      alert('ছবি পাঠানো যায়নি। আবার চেষ্টা করুন।');
     } finally {
       attachBtn.disabled = false;
       attachBtn.textContent = '📎';
