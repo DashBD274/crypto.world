@@ -42,15 +42,9 @@
     background:var(--panel);
     overflow:hidden;
   }
-  .chat-header{
-    flex-shrink:0;
-  }
-  .composer{
-    flex-shrink:0;
-  }
-  .topics-panel{
-    flex-shrink:0;
-  }
+  .chat-header{flex-shrink:0;}
+  .composer{flex-shrink:0;}
+  .topics-panel{flex-shrink:0;}
   .chat-header{
     display:flex;
     align-items:center;
@@ -86,7 +80,6 @@
     gap:10px;
   }
 
-  /* ---- Message row: holds the avatar + bubble side by side ---- */
   .msg-row{
     display:flex;
     align-items:flex-end;
@@ -150,15 +143,23 @@
     opacity:.6;
     margin-top:4px;
   }
-  .msg .tick{
-    font-size:11px;
+  .msg .tick{ font-size:11px; }
+
+  /* --- Image preview styles --- */
+  .msg-image{
+    max-width:100%;
+    border-radius:10px;
+    cursor:pointer;
+    display:block;
   }
+
   .composer{
     display:flex;
     gap:8px;
     padding:12px;
     border-top:1px solid var(--border);
     background:var(--panel-2);
+    align-items:center;
   }
   .composer input{
     flex:1;
@@ -171,6 +172,16 @@
     outline:none;
   }
   .composer input:focus{border-color:var(--gold);}
+  .composer .attach-btn{
+    background:none;
+    border:none;
+    color:var(--text-dim);
+    font-size:20px;
+    cursor:pointer;
+    padding:4px;
+    flex-shrink:0;
+  }
+  .composer .attach-btn:hover{ color:var(--gold); }
   .composer button{
     background:var(--gold);
     color:#12151D;
@@ -308,13 +319,17 @@
   </div>
 
   <div class="composer" id="composer" style="display:none;">
+    <!-- Hidden file input for image selection -->
+    <input type="file" id="imageInput" accept="image/*" style="display:none;">
+    <button class="attach-btn" id="attachBtn" title="Attach image">📎</button>
     <input id="msgInput" type="text" placeholder="Type a message…" maxlength="1000">
     <button id="sendBtn">➤</button>
   </div>
 </div>
 
-<!-- Firebase SDK (compat, no build step needed) -->
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script>
   // ====== ১. এখানে আপনার নিজের Firebase কনফিগ বসান ======
@@ -330,8 +345,9 @@
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
+  const storage = firebase.storage();
 
-  // ====== আসল ভিজিবল উচ্চতা ট্র্যাক করা (কিবোর্ড খুললেও হেডার স্থির থাকবে) ======
+  // ====== আসল ভিজিবল উচ্চতা ট্র্যাক করা ======
   function setAppHeight(){
     const h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
     document.documentElement.style.setProperty('--app-height', h + 'px');
@@ -355,15 +371,18 @@
   const statusLabel= document.getElementById('statusLabel');
   const topicsPanel  = document.getElementById('topicsPanel');
   const topicsToggle = document.getElementById('topicsToggle');
+  const imageInput  = document.getElementById('imageInput');
+  const attachBtn   = document.getElementById('attachBtn');
 
   let currentCustomerName = '';
-  let botGreetingSent = false; // tracked locally so a rapid double-send can't trigger it twice
+  let botGreetingSent = false;
+  let chatRef = null;
+  let msgsRef = null;
 
   topicsToggle.addEventListener('click', () => {
     topicsPanel.style.display = (topicsPanel.style.display === 'none') ? 'block' : 'none';
   });
 
-  // ইনপুট বক্সে ক্লিক/ফোকাস করলে Topics প্যানেল স্বয়ংক্রিয়ভাবে লুকানো (নতুন)
   msgInput.addEventListener('focus', () => {
     topicsPanel.style.display = 'none';
   });
@@ -376,19 +395,16 @@
     });
   });
 
-  // ====== ১৫ মিনিট সেশন মেয়াদ ======
-  const SESSION_LIMIT_MS = 15 * 60 * 1000; // 15 minutes
+  const SESSION_LIMIT_MS = 15 * 60 * 1000;
 
   function touchActivity(){
     localStorage.setItem('support_last_activity', Date.now().toString());
   }
 
-  // প্রতিটি গ্রাহকের জন্য একটি স্থায়ী chatId (browser এ সংরক্ষিত)
   let chatId = localStorage.getItem('support_chat_id');
   const lastActivity = parseInt(localStorage.getItem('support_last_activity') || '0', 10);
 
   if (chatId && (Date.now() - lastActivity > SESSION_LIMIT_MS)) {
-    // ১২ ঘণ্টার বেশি নিষ্ক্রিয় থাকলে পুরনো সেশন বাতিল করে নতুন শুরু
     localStorage.removeItem('support_chat_id');
     localStorage.removeItem('support_last_activity');
     chatId = null;
@@ -400,11 +416,9 @@
   }
   touchActivity();
 
-  const chatRef = db.collection('supportChats').doc(chatId);
-  const msgsRef = chatRef.collection('messages');
+  chatRef = db.collection('supportChats').doc(chatId);
+  msgsRef = chatRef.collection('messages');
 
-  // ====== ট্যাব খোলা রেখে নিষ্ক্রিয় থাকলেও ১৫ মিনিট পর সেশন রিসেট ======
-  // (রিলোড ছাড়াই — একই ট্যাবে বসে থাকলেও কাজ করে)
   setInterval(() => {
     const last = parseInt(localStorage.getItem('support_last_activity') || '0', 10);
     if (last && (Date.now() - last > SESSION_LIMIT_MS)) {
@@ -412,10 +426,8 @@
       localStorage.removeItem('support_last_activity');
       location.reload();
     }
-  }, 20000); // প্রতি ২০ সেকেন্ডে চেক করবে
-  // =======================================================================
+  }, 20000);
 
-  // ====== Typing indicator (নতুন) ======
   let typingTimeout = null;
 
   msgInput.addEventListener('input', () => {
@@ -425,7 +437,6 @@
       chatRef.set({ customerTyping: false }, { merge: true });
     }, 1500);
   });
-  // ======================================
 
   function fmtTime(ts) {
     if (!ts) return '';
@@ -433,8 +444,6 @@
     return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   }
 
-  // Builds the small circular avatar shown next to each bubble.
-  // Admin -> headset icon. Customer -> first letter of their name.
   function buildAvatar(sender) {
     const div = document.createElement('div');
     div.className = 'msg-avatar ' + sender;
@@ -447,7 +456,12 @@
     return div;
   }
 
-  function renderMessage(sender, text, ts) {
+  function renderMessage(m) {
+    const sender = m.sender;
+    const text = m.text || '';
+    const imageUrl = m.imageUrl;
+    const ts = m.timestamp;
+
     if (sender === 'system') {
       const sysDiv = document.createElement('div');
       sysDiv.className = 'msg system';
@@ -462,19 +476,27 @@
 
     const bubble = document.createElement('div');
     bubble.className = 'msg ' + sender;
+
+    let contentHtml = '';
+    if (imageUrl) {
+      contentHtml += `<img src="${imageUrl}" class="msg-image" onclick="window.open('${imageUrl}','_blank')">`;
+    }
+    if (text) {
+      if (contentHtml) contentHtml += '<br>';
+      contentHtml += text.replace(/</g, '&lt;');
+    }
+
     const timeHtml = sender === 'customer'
       ? '<span class="time">' + fmtTime(ts) + ' <span class="tick">✓</span></span>'
       : '<span class="time">' + fmtTime(ts) + '</span>';
-    bubble.innerHTML = text.replace(/</g,'&lt;') + timeHtml;
 
+    bubble.innerHTML = contentHtml + timeHtml;
     const avatar = buildAvatar(sender);
 
     if (sender === 'customer') {
-      // Bubble first, avatar after it, so the avatar sits on the far right.
       row.appendChild(bubble);
       row.appendChild(avatar);
     } else {
-      // Avatar first, bubble after it, so the avatar sits on the far left.
       row.appendChild(avatar);
       row.appendChild(bubble);
     }
@@ -507,12 +529,10 @@
     msgsRef.orderBy('timestamp').onSnapshot(snap => {
       messagesEl.innerHTML = '';
       snap.forEach(doc => {
-        const m = doc.data();
-        renderMessage(m.sender, m.text, m.timestamp);
+        renderMessage(doc.data());
       });
     });
 
-    // ====== Typing indicator শোনা (adminTyping) ======
     chatRef.onSnapshot(doc => {
       const d = doc.data();
       if (!d) return;
@@ -524,7 +544,6 @@
         statusLabel.classList.remove('typing');
       }
     });
-    // ===================================================
   }
 
   startBtn.addEventListener('click', () => {
@@ -543,7 +562,7 @@
     clearTimeout(typingTimeout);
 
     const isFirstMessage = !botGreetingSent;
-    if (isFirstMessage) botGreetingSent = true; // set immediately, before any async work
+    if (isFirstMessage) botGreetingSent = true;
 
     msgsRef.add({
       sender: 'customer',
@@ -560,12 +579,10 @@
     if (isFirstMessage) sendBotGreeting();
   }
 
-  // Automated first-touch reply: shows "Typing…" for 7–8s, then posts the
-  // greeting as an admin message. Runs once per chat session.
   function sendBotGreeting() {
     chatRef.set({ botGreeted: true, adminTyping: true }, { merge: true });
 
-    const delay = 7000 + Math.random() * 1000; // 7–8 seconds
+    const delay = 7000 + Math.random() * 1000;
     setTimeout(() => {
       const greeting = 'Thanks for your message, please wait a moment while our agents attend to you.';
       chatRef.set({ adminTyping: false }, { merge: true });
@@ -581,10 +598,63 @@
     }, delay);
   }
 
+  // ====== ছবি আপলোডের ফাংশন ======
+  attachBtn.addEventListener('click', () => imageInput.click());
+
+  imageInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // ফাইল সাইজ চেক (৫MB সর্বোচ্চ)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('ছবিটি ৫ মেগাবাইটের বেশি। ছোট সাইজের ছবি নির্বাচন করুন।');
+      return;
+    }
+
+    touchActivity();
+    const isFirstMessage = !botGreetingSent;
+    if (isFirstMessage) botGreetingSent = true;
+
+    // আপলোড শুরু (বাটন ডিজেবল)
+    attachBtn.disabled = true;
+    attachBtn.textContent = '⏳';
+
+    try {
+      const storageRef = storage.ref();
+      const imgRef = storageRef.child(`support/${chatId}/${Date.now()}_${file.name}`);
+      const snapshot = await imgRef.put(file);
+      const downloadUrl = await snapshot.ref.getDownloadURL();
+
+      await msgsRef.add({
+        sender: 'customer',
+        imageUrl: downloadUrl,
+        text: '',
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      await chatRef.set({
+        lastMessage: '📷 ছবি',
+        lastMessageAt: firebase.firestore.FieldValue.serverTimestamp(),
+        unreadByAdmin: firebase.firestore.FieldValue.increment(1),
+        customerTyping: false
+      }, { merge: true });
+
+      if (isFirstMessage) sendBotGreeting();
+
+    } catch (err) {
+      console.error('Image upload failed:', err);
+      alert('ছবি পাঠানো যায়নি। Firebase Storage Rules চেক করুন।');
+    } finally {
+      attachBtn.disabled = false;
+      attachBtn.textContent = '📎';
+      imageInput.value = '';
+    }
+  });
+  // ======================================
+
   sendBtn.addEventListener('click', sendMessage);
   msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
 
-  // যদি আগেই চ্যাট চলমান থাকে (পেজ রিলোড), সরাসরি চ্যাট উইন্ডো দেখাও
   chatRef.get().then(doc => {
     if (doc.exists && doc.data().customerName) {
       startChat(doc.data().customerName);
