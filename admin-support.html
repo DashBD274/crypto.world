@@ -34,7 +34,6 @@
     width:100%;
   }
 
-  /* ===== Password gate ===== */
   .auth-gate{
     height:100vh;
     display:flex;
@@ -75,7 +74,6 @@
   }
   .auth-error{color:var(--danger);font-size:12.5px;min-height:16px;}
 
-  /* ===== App shell ===== */
   .app{
     display:none;
     height:100vh;
@@ -149,7 +147,6 @@
   }
   .empty-list{padding:30px 16px;color:var(--text-dim);font-size:13px;text-align:center;}
 
-  /* ===== Chat panel ===== */
   .chat-panel{display:flex;flex-direction:column;min-width:0;background:var(--panel);overflow:hidden;}
   .chat-panel-header{
     display:flex;align-items:center;gap:12px;
@@ -174,13 +171,30 @@
   .msg.customer{align-self:flex-start;background:var(--bubble-customer);color:var(--text);border-bottom-left-radius:4px;}
   .msg.admin{align-self:flex-end;background:var(--bubble-admin);color:var(--bubble-admin-text);border-bottom-right-radius:4px;}
   .msg .time{display:block;font-size:10px;opacity:.6;margin-top:4px;}
+  
+  .msg-image{
+    max-width:100%;
+    border-radius:10px;
+    cursor:pointer;
+    display:block;
+  }
 
-  .composer{display:flex;gap:8px;padding:14px;border-top:1px solid var(--border);background:var(--panel-2);flex-shrink:0;}
+  .composer{display:flex;gap:8px;padding:14px;border-top:1px solid var(--border);background:var(--panel-2);flex-shrink:0;align-items:center;}
   .composer input{
     flex:1;background:var(--bg);border:1px solid var(--border);border-radius:22px;
     padding:12px 16px;color:var(--text);font-size:16px;outline:none;
   }
   .composer input:focus{border-color:var(--gold);}
+  .composer .attach-btn{
+    background:none;
+    border:none;
+    color:var(--text-dim);
+    font-size:20px;
+    cursor:pointer;
+    padding:4px;
+    flex-shrink:0;
+  }
+  .composer .attach-btn:hover{ color:var(--gold); }
   .composer button{
     background:var(--gold);color:#12151D;border:none;border-radius:50%;
     width:44px;height:44px;font-size:16px;cursor:pointer;flex-shrink:0;
@@ -209,7 +223,6 @@
 </head>
 <body>
 
-<!-- ===== Password Gate ===== -->
 <div class="auth-gate" id="authGate">
   <div class="logo">🔒</div>
   <h2>Admin Login</h2>
@@ -220,9 +233,7 @@
   <div class="auth-error" id="authError"></div>
 </div>
 
-<!-- ===== Admin App ===== -->
 <div class="app hidden" id="appShell">
-  <!-- Sidebar: chat list -->
   <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="avatar">🎧</div>
@@ -240,7 +251,6 @@
     </div>
   </div>
 
-  <!-- Chat panel -->
   <div class="chat-panel" id="chatPanel">
     <div class="no-chat-selected" id="noChatSelected">
       <div class="big">💬</div>
@@ -259,6 +269,8 @@
       </div>
       <div class="messages" id="messages"></div>
       <div class="composer">
+        <input type="file" id="imageInput" accept="image/*" style="display:none;">
+        <button class="attach-btn" id="attachBtn" title="Attach image">📎</button>
         <input id="msgInput" type="text" placeholder="উত্তর লিখুন…" maxlength="1000">
         <button id="sendBtn">➤</button>
       </div>
@@ -269,9 +281,9 @@
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script>
-  // ====== ১. এখানে সেই একই Firebase কনফিগ (live-support.html এর মতো) ======
   const firebaseConfig = {
     apiKey: "AIzaSyDJoPr8RvE1xkNTKRr5kwTx6E51GCMn_HE",
     authDomain: "abc-company-6272a.firebaseapp.com",
@@ -281,14 +293,12 @@
     appId: "1:1026212780106:web:985ec1bc35837d6320eeb3"
   };
 
-  // ====== ২. এই ইমেইলের অ্যাকাউন্টই একমাত্র admin-support.html-এ ঢুকতে পারবে ======
   const ADMIN_EMAIL = "mrtiger6662@gmail.com";
-  // =========================================================
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
+  const storage = firebase.storage();
 
-  // ====== আসল ভিজিবল উচ্চতা ট্র্যাক করা (কিবোর্ড খুললেও হেডার স্থির থাকবে) ======
   function setAppHeight(){
     const h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
     document.documentElement.style.setProperty('--app-height', h + 'px');
@@ -300,9 +310,7 @@
     window.visualViewport.addEventListener('resize', setAppHeight);
     window.visualViewport.addEventListener('scroll', setAppHeight);
   }
-  // ==================================================================
 
-  // ---------- Elements ----------
   const authGate       = document.getElementById('authGate');
   const adminEmailInput= document.getElementById('adminEmailInput');
   const adminPassInput = document.getElementById('adminPassInput');
@@ -324,12 +332,13 @@
   const logoutBtn  = document.getElementById('logoutBtn');
   const sidebar    = document.getElementById('sidebar');
   const backToList = document.getElementById('backToList');
+  const imageInput = document.getElementById('imageInput');
+  const attachBtn  = document.getElementById('attachBtn');
 
   let allChats = [];
   let activeChatId = null;
   let unsubscribeMessages = null;
 
-  // ---------- Auth (real Firebase login, restricted to ADMIN_EMAIL) ----------
   function tryLogin(){
     const email = adminEmailInput.value.trim();
     const pass = adminPassInput.value;
@@ -363,7 +372,6 @@
     firebase.auth().signOut().then(() => location.reload());
   });
 
-  // If already signed in as the admin (e.g. page refresh), skip straight to the inbox.
   firebase.auth().onAuthStateChanged(user => {
     if (user && (user.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase()){
       authGate.style.display = 'none';
@@ -372,7 +380,6 @@
     }
   });
 
-  // ---------- Inbox ----------
   let inboxInitialized = false;
   function initInbox(){
     if (inboxInitialized) return;
@@ -384,18 +391,15 @@
         allChats = [];
         snap.forEach(doc => allChats.push({ id: doc.id, ...doc.data() }));
         renderChatList();
-        updateActiveHeaderTyping(); // নতুন: টাইপিং ইন্ডিকেটর আপডেট
+        updateActiveHeaderTyping();
       }, err => {
         chatList.innerHTML = '<div class="empty-list">লোড করতে সমস্যা হয়েছে।<br>Firestore rules চেক করুন।</div>';
         console.error(err);
       });
 
-    // ====== ১৫ মিনিট নিষ্ক্রিয় চ্যাট স্বয়ংক্রিয়ভাবে মুছে ফেলা ======
-    setInterval(cleanupExpiredChats, 30000); // প্রতি ৩০ সেকেন্ডে চেক করবে
-    // =====================================================================
+    setInterval(cleanupExpiredChats, 30000);
   }
 
-  // Deletes a chat's entire messages subcollection, then the chat doc itself.
   async function deleteChatCompletely(chatId){
     const chatRef = db.collection('supportChats').doc(chatId);
     const msgsSnap = await chatRef.collection('messages').get();
@@ -405,7 +409,7 @@
     await batch.commit();
   }
 
-  const CHAT_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes since the last message
+  const CHAT_EXPIRY_MS = 15 * 60 * 1000;
 
   function cleanupExpiredChats(){
     const now = Date.now();
@@ -478,7 +482,6 @@
     }[s]));
   }
 
-  // ---------- টাইপিং ইন্ডিকেটর (নতুন) ----------
   function updateActiveHeaderTyping(){
     if (!activeChatId) return;
     const chat = allChats.find(c => c.id === activeChatId);
@@ -501,9 +504,7 @@
       db.collection('supportChats').doc(activeChatId).set({ adminTyping: false }, { merge: true });
     }, 1500);
   });
-  // ================================================
 
-  // ---------- Active chat ----------
   function openChat(chat){
     activeChatId = chat.id;
     noChatSelected.style.display = 'none';
@@ -511,12 +512,11 @@
     cphAvatar.textContent = initials(chat.customerName);
     cphName.textContent = chat.customerName || 'Unknown';
     cphSub.textContent = 'Chat ID: ' + chat.id;
-    sidebar.classList.add('slide-out'); // mobile: hide list, show chat
+    sidebar.classList.add('slide-out');
 
-    renderChatList(); // to update active highlight
+    renderChatList();
     updateActiveHeaderTyping();
 
-    // Reset unread counter for admin
     db.collection('supportChats').doc(chat.id).set({ unreadByAdmin: 0 }, { merge: true });
 
     if (unsubscribeMessages) unsubscribeMessages();
@@ -529,7 +529,17 @@
           const m = doc.data();
           const div = document.createElement('div');
           div.className = 'msg ' + (m.sender === 'admin' ? 'admin' : 'customer');
-          div.innerHTML = escapeHtml(m.text) + '<span class="time">' + fmtTime(m.timestamp) + '</span>';
+          
+          let contentHtml = '';
+          if (m.imageUrl) {
+            contentHtml += `<img src="${m.imageUrl}" class="msg-image" onclick="window.open('${m.imageUrl}','_blank')">`;
+          }
+          if (m.text) {
+            if (contentHtml) contentHtml += '<br>';
+            contentHtml += escapeHtml(m.text);
+          }
+          
+          div.innerHTML = contentHtml + '<span class="time">' + fmtTime(m.timestamp) + '</span>';
           messagesEl.appendChild(div);
         });
         messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -560,6 +570,52 @@
   }
   sendBtn.addEventListener('click', sendReply);
   msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendReply(); });
+
+  // ====== অ্যাডমিনের ছবি আপলোডের ফাংশন ======
+  attachBtn.addEventListener('click', () => imageInput.click());
+
+  imageInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file || !activeChatId) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('ছবিটি ৫ মেগাবাইটের বেশি।');
+      return;
+    }
+
+    attachBtn.disabled = true;
+    attachBtn.textContent = '⏳';
+
+    try {
+      const chatRef = db.collection('supportChats').doc(activeChatId);
+      const storageRef = storage.ref();
+      const imgRef = storageRef.child(`support/${activeChatId}/${Date.now()}_${file.name}`);
+      const snapshot = await imgRef.put(file);
+      const downloadUrl = await snapshot.ref.getDownloadURL();
+
+      await chatRef.collection('messages').add({
+        sender: 'admin',
+        imageUrl: downloadUrl,
+        text: '',
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      await chatRef.set({
+        lastMessage: '📷 ছবি',
+        lastMessageAt: firebase.firestore.FieldValue.serverTimestamp(),
+        adminTyping: false
+      }, { merge: true });
+
+    } catch (err) {
+      console.error('Admin image upload failed:', err);
+      alert('ছবি পাঠানো যায়নি। Firebase Storage Rules চেক করুন।');
+    } finally {
+      attachBtn.disabled = false;
+      attachBtn.textContent = '📎';
+      imageInput.value = '';
+    }
+  });
+  // =========================================
 
   resolveBtn.addEventListener('click', () => {
     if (!activeChatId) return;
