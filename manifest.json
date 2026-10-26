@@ -1,6 +1,6 @@
 {
-  "name": "My Wallet",
-  "short_name": "My Wallet",
+  "name": "Crypto World",
+  "short_name": "Crypto World",
   "description": "TradeWallet - The World's Leading Cryptocurrency Trading Platform",
   "start_url": "./index.html",
   "display": "standalone",
