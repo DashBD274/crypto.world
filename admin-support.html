@@ -281,7 +281,6 @@
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script>
   const firebaseConfig = {
@@ -293,11 +292,13 @@
     appId: "1:1026212780106:web:985ec1bc35837d6320eeb3"
   };
 
+  // ★★★ এখানে আপনার ImgBB API Key বসান ★★★
+  const IMGBB_API_KEY = '0dae5f846c7bc79071442d3c548697fc';
+
   const ADMIN_EMAIL = "mrtiger6662@gmail.com";
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
-  const storage = firebase.storage();
 
   function setAppHeight(){
     const h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
@@ -571,15 +572,15 @@
   sendBtn.addEventListener('click', sendReply);
   msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendReply(); });
 
-  // ====== অ্যাডমিনের ছবি আপলোডের ফাংশন ======
+  // ====== অ্যাডমিনের ImgBB ছবি আপলোড ======
   attachBtn.addEventListener('click', () => imageInput.click());
 
   imageInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file || !activeChatId) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('ছবিটি ৫ মেগাবাইটের বেশি।');
+    if (file.size > 32 * 1024 * 1024) {
+      alert('ছবিটি ৩২ মেগাবাইটের বেশি।');
       return;
     }
 
@@ -588,10 +589,19 @@
 
     try {
       const chatRef = db.collection('supportChats').doc(activeChatId);
-      const storageRef = storage.ref();
-      const imgRef = storageRef.child(`support/${activeChatId}/${Date.now()}_${file.name}`);
-      const snapshot = await imgRef.put(file);
-      const downloadUrl = await snapshot.ref.getDownloadURL();
+      
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await res.json();
+      if (!data.success) throw new Error('Upload failed');
+      
+      const downloadUrl = data.data.url;
 
       await chatRef.collection('messages').add({
         sender: 'admin',
@@ -608,7 +618,7 @@
 
     } catch (err) {
       console.error('Admin image upload failed:', err);
-      alert('ছবি পাঠানো যায়নি। Firebase Storage Rules চেক করুন।');
+      alert('ছবি পাঠানো যায়নি। আবার চেষ্টা করুন।');
     } finally {
       attachBtn.disabled = false;
       attachBtn.textContent = '📎';
