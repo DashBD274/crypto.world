@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Download App - Crypto World</title>
+
+<!-- ★★★ iPhone-এর জন্য অ্যাপের নাম ও লোগো সেট করা হলো ★★★ -->
+<meta name="apple-mobile-web-app-title" content="Crypto World">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" sizes="180x180" href="tradewallet.png">
+<!-- ======================================================== -->
+
 <style>
   * { box-sizing: border-box; }
   html, body {
@@ -70,6 +78,8 @@
     border-radius: 8px; 
     border: 1px solid #333; 
     display: block;
+    background: #000;
+    min-height: 100px;
   }
 </style>
 </head>
@@ -110,7 +120,6 @@
       box.classList.add('active');
 
       if (isIOS) {
-        // ★★★ এখানে আপনার iPhone এর স্ক্রিনশটগুলো বসাবেন ★★★
         box.innerHTML = `
           <b>📱 iPhone / iPad Instructions:</b><br><br>
           
