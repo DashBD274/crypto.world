@@ -1,61 +1,136 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Profile - ABC Company</title>
 <style>
+  /* ★★★ ডার্ক ও লাইট মোডের জন্য CSS ভেরিয়েবল ★★★ */
+  :root {
+    --bg-color: #0b0e11;
+    --panel-color: #161a1e;
+    --panel-hover: #1e2329;
+    --text-color: #eaecef;
+    --text-dim: #848e9c;
+    --border-color: #2b3139;
+    --gold: #f0b90b;
+    --btn-text: #202630;
+    --green: #0ecb81;
+    --red: #f6465d;
+  }
+
+  [data-theme="light"] {
+    --bg-color: #ffffff;
+    --panel-color: #f5f5f5;
+    --panel-hover: #e8e8e8;
+    --text-color: #1a1a1a;
+    --text-dim: #666666;
+    --border-color: #dcdcdc;
+    --gold: #d9a70a;
+    --btn-text: #ffffff;
+    --green: #0a9d62;
+    --red: #d9304a;
+  }
+
   * { box-sizing:border-box; }
-  body { margin:0; font-family:Arial, sans-serif; background:#0b0e11; color:#eaecef; padding-bottom:70px; }
-  header { padding:16px 20px; text-align:center; }
-  header h1 { font-size:20px; margin:0; color:#f0b90b; }
+  html { 
+    overflow-x: hidden; 
+    width: 100%; 
+    height: 100%;
+  }
+  
+  body { 
+    margin:0; font-family:Arial, sans-serif; 
+    background: var(--bg-color); color: var(--text-color); 
+    padding-bottom: calc(70px + env(safe-area-inset-bottom)); 
+    width:100%; height: 100vh;
+    /* মোবাইলে স্ক্রল ও জুম বন্ধ করতে */
+    overflow: hidden; 
+    overscroll-behavior: none;
+    -webkit-text-size-adjust:100%;
+    touch-action: pan-y;
+    position: fixed;
+    inset: 0;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  header { 
+    display:flex; align-items:center; justify-content:center; 
+    padding: calc(16px + env(safe-area-inset-top)) 20px 16px; 
+    position:relative; 
+    background: var(--bg-color);
+    border-bottom: 1px solid var(--border-color);
+  }
+  header h1 { font-size:20px; margin:0; color: var(--gold); }
+  
+  .header-controls {
+    position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+    display: flex; gap: 8px; align-items: center;
+  }
+  .icon-btn, .lang-select {
+    background: transparent; border: 1px solid var(--border-color);
+    color: var(--text-color); border-radius: 6px; padding: 4px 6px;
+    cursor: pointer; font-size: 12px; outline: none;
+  }
+  .lang-select option { background: var(--panel-color); color: var(--text-color); }
+
+  /* কন্টেন্ট এরিয়া স্ক্রল হবে */
+  #scroll-container {
+    height: 100vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 80px;
+  }
 
   .balance-card {
-    background:#161a1e; border-radius:12px; margin:16px; padding:20px;
+    background: var(--panel-color); border-radius:12px; margin:16px; padding:20px;
   }
   .balance-title {
     display:flex; align-items:center; gap:6px;
-    color:#848e9c; font-size:14px; margin-bottom:16px;
+    color: var(--text-dim); font-size:14px; margin-bottom:16px;
   }
   .balance-amount {
     display:flex; align-items:baseline; gap:8px; margin-bottom:6px;
   }
   .balance-amount .num { font-size:32px; font-weight:bold; }
-  .balance-amount .cur { color:#848e9c; font-size:15px; }
-  .balance-usd { color:#848e9c; font-size:13px; margin-bottom:20px; }
+  .balance-amount .cur { color: var(--text-dim); font-size:15px; }
+  .balance-usd { color: var(--text-dim); font-size:13px; margin-bottom:20px; }
+  
   .balance-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .balance-actions button {
-    background:#1e2329; border:1px solid #2b3139; color:#eaecef;
+    background: var(--panel-hover); border:1px solid var(--border-color); color: var(--text-color);
     padding:12px 0; border-radius:8px; font-weight:bold; font-size:14px; cursor:pointer;
   }
   .balance-actions .btn-primary {
-    background:#f0b90b;
-    color:#0b0e11;
-    border:1px solid #f0b90b;
+    background: var(--gold); color: var(--btn-text); border:1px solid var(--gold);
   }
   .balance-actions .btn-secondary {
-    background:#2354b8;
-    color:#ffffff;
-    border:1px solid #2354b8;
+    background:#2354b8; color:#ffffff; border:1px solid #2354b8;
   }
 
-  .card { background:#161a1e; border-radius:12px; margin:16px; padding:20px; }
-  .row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #1e2329; }
+  .card { background: var(--panel-color); border-radius:12px; margin:16px; padding:20px; }
+  .row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border-color); }
   .row:last-child { border-bottom:none; }
-  .label { color:#848e9c; font-size:13px; }
+  .label { color: var(--text-dim); font-size:13px; }
   .value { font-weight:bold; word-break:break-all; text-align:right; max-width:60%; }
+  
   .logout-btn {
     width:calc(100% - 32px); margin:16px; padding:14px; border:none; border-radius:8px;
-    background:#f6465d; color:white; font-weight:bold; cursor:pointer;
+    background: var(--red); color:white; font-weight:bold; cursor:pointer; font-size: 15px;
   }
+  .logout-btn:active { opacity: 0.8; }
 
   .bottom-nav {
-    position:fixed; bottom:0; left:0; right:0; background:#161a1e;
-    display:flex; justify-content:space-around; padding:10px 0;
-    border-top:1px solid #2b3139;
+    position:fixed; bottom:0; left:0; right:0; background: var(--panel-color);
+    display:flex; justify-content:space-around; 
+    padding: 10px 0 calc(10px + env(safe-area-inset-bottom)) 0;
+    border-top:1px solid var(--border-color);
+    z-index: 999;
+    transition: background 0.3s;
   }
-  .bottom-nav div { text-align:center; color:#848e9c; font-size:11px; cursor:pointer; }
-  .bottom-nav div.active { color:#f0b90b; }
+  .bottom-nav a { text-decoration:none; }
+  .bottom-nav div { text-align:center; color: var(--text-dim); font-size:11px; cursor:pointer; }
+  .bottom-nav div.active { color: var(--gold); }
   .bottom-nav .ic {
     font-size:18px; width:38px; height:38px; line-height:38px;
     margin:0 auto 2px; border-radius:50%; transition:0.2s;
@@ -67,38 +142,65 @@
 </style>
 </head>
 <body>
-<header><h1>Profile</h1></header>
 
-<div class="balance-card">
-  <div class="balance-title">
-    Est. Total Value
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
-      <circle cx="12" cy="12" r="3"/>
-    </svg>
+<header>
+  <h1 data-i18n="profile">Profile</h1>
+  <div class="header-controls">
+    <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
+      <span id="theme-icon">🌙</span>
+    </button>
+    <select class="lang-select" id="langSelect" onchange="changeLanguage(this.value)">
+      <option value="en">EN</option>
+      <option value="bn">BN</option>
+      <option value="hi">HI</option>
+      <option value="zh">ZH</option>
+      <option value="es">ES</option>
+      <option value="ar">AR</option>
+      <option value="fr">FR</option>
+      <option value="pt">PT</option>
+      <option value="ru">RU</option>
+      <option value="ja">JA</option>
+    </select>
   </div>
-  <div class="balance-amount">
-    <span class="num" id="balanceNum">0.00</span>
-    <span class="cur">USDT &#9662;</span>
-  </div>
-  <div class="balance-usd" id="balanceUsd">&#8776; $0.00</div>
-  <div class="balance-actions">
-    <button class="btn-primary" onclick="location.href='deposit.html'">Deposit</button>
-    <button class="btn-secondary" onclick="location.href='withdraw.html'">Withdraw</button>
-  </div>
-</div>
+</header>
 
-<div class="card" id="profile-card">
-  <div class="row"><span class="label">Loading...</span></div>
+<div id="scroll-container">
+  <div class="balance-card">
+    <div class="balance-title">
+      <span data-i18n="est_total_value">Est. Total Value</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    </div>
+    <div class="balance-amount">
+      <span class="num" id="balanceNum">0.00</span>
+      <span class="cur">USDT &#9662;</span>
+    </div>
+    <div class="balance-usd" id="balanceUsd">&#8776; $0.00</div>
+    <div class="balance-actions">
+      <button class="btn-primary" onclick="location.href='deposit.html'" data-i18n="deposit">Deposit</button>
+      <button class="btn-secondary" onclick="location.href='withdraw.html'" data-i18n="withdraw">Withdraw</button>
+    </div>
+  </div>
+
+  <div class="card" id="profile-card">
+    <div class="row"><span class="label">Loading...</span></div>
+  </div>
+  
+  <button class="logout-btn" onclick="logOut()" data-i18n="logout">Log Out</button>
 </div>
-<button class="logout-btn" onclick="firebase.auth().signOut().then(()=>window.location.href='index.html')">Log Out</button>
 
 <div class="bottom-nav">
-  <a href="market.html" style="text-decoration:none;"><div><div class="ic">&#128200;</div>Market</div></a>
-  <a href="trade.html" style="text-decoration:none;"><div><div class="ic">&#128179;</div>Trade</div></a>
-  <a href="assets.html" style="text-decoration:none;"><div><div class="ic">&#128188;</div>Assets</div></a>
-  <div class="active"><div class="ic">&#128100;</div>Profile</div>
+  <a href="market.html"><div><div class="ic">&#128200;</div><span data-i18n="market">Market</span></div></a>
+  <a href="trade.html"><div><div class="ic">&#128179;</div><span data-i18n="trade">Trade</span></div></a>
+  <a href="assets.html"><div><div class="ic">&#128188;</div><span data-i18n="assets">Assets</span></div></a>
+  <div class="active"><div class="ic">&#128100;</div><span data-i18n="profile">Profile</span></div>
 </div>
+
+<!-- ★★★ lang-theme.js যুক্ত করা হলো ★★★ -->
+<script src="lang-theme.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -113,8 +215,22 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 
-// ---- Show cached data instantly (no "Loading..." flash on repeat visits) ----
-// The real Firebase data below will overwrite this the moment it arrives.
+// ---- Logout Function ----
+function logOut() {
+  if (confirm("Are you sure you want to log out?")) {
+    firebase.auth().signOut()
+      .then(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.replace('login.html');
+      })
+      .catch((error) => {
+        alert('Logout failed: ' + error.message);
+      });
+  }
+}
+
+// ---- Show cached data instantly ----
 (function showCachedProfile() {
   try {
     const cached = JSON.parse(localStorage.getItem('profileCache') || 'null');
@@ -122,11 +238,15 @@ firebase.initializeApp(firebaseConfig);
     document.getElementById('balanceNum').textContent = cached.balance.toFixed(2);
     document.getElementById('balanceUsd').textContent = `≈ $${cached.balance.toFixed(2)}`;
     document.getElementById('profile-card').innerHTML = `
-      <div class="row"><span class="label">Full Name</span><span class="value">${cached.fullName}</span></div>
-      <div class="row"><span class="label">Email/Phone</span><span class="value">${cached.identifier}</span></div>
-      <div class="row"><span class="label">Account ID</span><span class="value">${cached.accountId}</span></div>
-      <div class="row"><span class="label">Joined</span><span class="value">${cached.createdAtStr}</span></div>
+      <div class="row"><span class="label" data-i18n="full_name">Full Name</span><span class="value">${cached.fullName}</span></div>
+      <div class="row"><span class="label" data-i18n="email_phone">Email/Phone</span><span class="value">${cached.identifier}</span></div>
+      <div class="row"><span class="label" data-i18n="account_id">Account ID</span><span class="value">${cached.accountId}</span></div>
+      <div class="row"><span class="label" data-i18n="joined">Joined</span><span class="value">${cached.createdAtStr}</span></div>
     `;
+    // ক্যাশ লোড হওয়ার পর অনুবাদ অ্যাপ্লাই করা
+    if (typeof changeLanguage === 'function') {
+      changeLanguage(localStorage.getItem('appLang') || 'en');
+    }
   } catch (e) {}
 })();
 
@@ -145,7 +265,6 @@ firebase.auth().onAuthStateChanged(async user => {
         document.getElementById('balanceNum').textContent = balance.toFixed(2);
         document.getElementById('balanceUsd').textContent = `≈ $${balance.toFixed(2)}`;
 
-        // Keep the cached balance in sync so the next page load starts from the latest number.
         try {
           const cached = JSON.parse(localStorage.getItem('profileCache') || '{}');
           cached.balance = balance;
@@ -172,14 +291,19 @@ firebase.auth().onAuthStateChanged(async user => {
       balanceForCache = data.balance || 0;
     }
   } catch (e) {}
+  
   card.innerHTML = `
-    <div class="row"><span class="label">Full Name</span><span class="value">${fullName}</span></div>
-    <div class="row"><span class="label">Email/Phone</span><span class="value">${identifier}</span></div>
-    <div class="row"><span class="label">Account ID</span><span class="value">${accountId}</span></div>
-    <div class="row"><span class="label">Joined</span><span class="value">${createdAtStr}</span></div>
+    <div class="row"><span class="label" data-i18n="full_name">Full Name</span><span class="value">${fullName}</span></div>
+    <div class="row"><span class="label" data-i18n="email_phone">Email/Phone</span><span class="value">${identifier}</span></div>
+    <div class="row"><span class="label" data-i18n="account_id">Account ID</span><span class="value">${accountId}</span></div>
+    <div class="row"><span class="label" data-i18n="joined">Joined</span><span class="value">${createdAtStr}</span></div>
   `;
 
-  // Save this fresh data so the next visit to this page can show it instantly.
+  // নতুন কন্টেন্টে অনুবাদ অ্যাপ্লাই করা
+  if (typeof changeLanguage === 'function') {
+    changeLanguage(localStorage.getItem('appLang') || 'en');
+  }
+
   try {
     localStorage.setItem('profileCache', JSON.stringify({
       fullName, identifier, accountId, createdAtStr, balance: balanceForCache
