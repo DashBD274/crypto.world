@@ -1,57 +1,97 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Market - ABC Company</title>
 <style>
+  :root {
+    --bg-color: #0b0e11;
+    --panel-color: #161a1e;
+    --panel-hover: #1e2329;
+    --text-color: #eaecef;
+    --text-dim: #848e9c;
+    --border-color: #2b3139;
+    --gold: #f0b90b;
+    --btn-text: #202630;
+    --green: #0ecb81;
+    --red: #f6465d;
+  }
+
+  [data-theme="light"] {
+    --bg-color: #ffffff;
+    --panel-color: #f5f5f5;
+    --panel-hover: #e8e8e8;
+    --text-color: #1a1a1a;
+    --text-dim: #666666;
+    --border-color: #dcdcdc;
+    --gold: #d9a70a;
+    --btn-text: #ffffff;
+    --green: #0a9d62;
+    --red: #d9304a;
+  }
+
   * { box-sizing:border-box; }
-  html { overflow-x:hidden; width:100%; }
+  html { 
+    overflow-x: hidden; 
+    width: 100%; 
+    height: 100%;
+  }
   
   body {
-    margin:0; font-family:Arial, sans-serif; background:#0b0e11; color:#eaecef; 
-    /* স্ট্যাটাস বারের নিচে যাতে বাটনগুলো না ঢোকে তাই প্যাডিং বাড়ানো হয়েছে */
+    margin:0; font-family:Arial, sans-serif; 
+    background: var(--bg-color); color: var(--text-color); 
     padding-bottom: calc(70px + env(safe-area-inset-bottom));
-    overflow-x:hidden; width:100%; max-width:100vw;
-    touch-action:pan-y; overscroll-behavior-x:none; overscroll-behavior-y:contain;
+    width:100%; height: 100vh;
+    /* মোবাইলে স্ক্রল ও জুম বন্ধ করতে */
+    overflow: hidden; 
+    overscroll-behavior: none;
     -webkit-text-size-adjust:100%;
+    touch-action: pan-y;
+    position: fixed;
+    inset: 0;
+    transition: background 0.3s, color 0.3s;
   }
 
   /* --- Sticky Top Fix --- */
   #sticky-top { 
-    position:fixed; 
-    top:0; 
-    left:0; 
-    right:0; 
-    z-index:1000; 
-    background:#0b0e11; 
-    /* আইফোন ও অ্যান্ড্রয়েডের স্ট্যাটাস বার এড়াতে উপরে স্পেস দেওয়া হলো */
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    right: 0; 
+    z-index: 1000; 
+    background: var(--bg-color); 
+    /* আইফোন ও অ্যান্ড্রয়েডের স্ট্যাটাস বার এড়াতে উপরে স্পেস */
     padding-top: calc(16px + env(safe-area-inset-top)); 
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
+    transition: background 0.3s;
   }
 
   header { 
     display:flex; align-items:center; justify-content:space-between; 
-    padding: 0 20px 16px 20px; /* উপরের প্যাডিং 0 করে নিচে 16px */
+    padding: 0 20px 16px 20px; 
+    flex-wrap: wrap; /* ছোট স্ক্রিনে বাটন ভেঙে যাওয়া রোধ করতে */
+    gap: 10px;
   }
   header h1 { font-size:20px; margin:0; }
-  .icons { display:flex; align-items:center; gap:12px; }
-  .icons span, .icons a.icon-link { cursor:pointer; color:#eaecef; text-decoration:none; }
-  .icon-wrap { position:relative; display:inline-block; }
-  .notif-badge {
-    position:absolute; top:-6px; right:-8px;
-    background:#f6465d; color:#fff; font-size:10px; font-weight:bold;
-    min-width:16px; height:16px; border-radius:8px;
-    display:none; align-items:center; justify-content:center;
-    padding:0 4px; line-height:1;
-  }
-  .notif-badge.show { display:flex; }
   
+  .icons { 
+    display:flex; align-items:center; gap:8px; 
+    flex-wrap: wrap; /* আইকনগুলো যাতে বাইরে চলে না যায় */
+  }
+  
+  .icon-btn, .lang-select {
+    background: transparent; border: 1px solid var(--border-color);
+    color: var(--text-color); border-radius: 6px; padding: 6px 8px;
+    cursor: pointer; font-size: 13px; outline: none;
+  }
+  .lang-select option { background: var(--panel-color); color: var(--text-color); }
+
   .deposit-btn {
-    background:#f0b90b; color:#202630; border:none;
-    padding:8px 16px; border-radius:8px; font-weight:bold;
-    font-size:13px; cursor:pointer; text-decoration:none;
+    background: var(--gold); color: var(--btn-text); border:none;
+    padding:8px 12px; border-radius:8px; font-weight:bold;
+    font-size:12px; cursor:pointer; text-decoration:none;
     display:inline-block;
   }
   
@@ -60,49 +100,58 @@
     overflow-x:auto; -webkit-overflow-scrolling:touch; 
   }
   .tabs button {
-    background:#1e2329; border:1px solid #2b3139; color:#848e9c;
-    padding:8px 16px; border-radius:20px; white-space:nowrap; cursor:pointer;
+    background: var(--panel-hover); border:1px solid var(--border-color); color: var(--text-dim);
+    padding:6px 12px; border-radius:20px; white-space:nowrap; cursor:pointer;
+    font-size: 13px;
   }
-  .tabs button.active { background:#f0b90b; color:#202630; border-color:#f0b90b; font-weight:bold; }
+  .tabs button.active { background: var(--gold); color: var(--btn-text); border-color: var(--gold); font-weight:bold; }
   
-  /* --- Content --- */
+  /* কন্টেন্ট এরিয়া স্ক্রল হবে */
+  #page-content {
+    height: 100vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-top: 100px; /* হেডারের উচ্চতা অনুযায়ী জাভাস্ক্রিপ্ট এটি ঠিক করবে */
+    padding-bottom: 80px;
+  }
+
   .highlight-row { 
     display:flex; gap:12px; padding:16px 20px 16px; 
     overflow-x:auto; -webkit-overflow-scrolling:touch; 
   }
   .highlight-card {
-    background:#161a1e; border-radius:10px; padding:12px 16px; min-width:130px;
+    background: var(--panel-color); border-radius:10px; padding:12px 16px; min-width:130px;
   }
-  .highlight-card .name { font-size:13px; color:#848e9c; }
+  .highlight-card .name { font-size:13px; color: var(--text-dim); }
   .highlight-card .price { font-size:16px; font-weight:bold; margin-top:4px; }
   
   table { width:100%; max-width:100%; border-collapse:collapse; table-layout:fixed; }
-  th { text-align:left; color:#848e9c; font-size:13px; font-weight:normal; padding:8px 20px; }
+  th { text-align:left; color: var(--text-dim); font-size:13px; font-weight:normal; padding:8px 20px; }
   th:last-child, td:last-child { text-align:right; }
-  td { padding:10px 20px; border-top:1px solid #1e2329; overflow:hidden; }
+  td { padding:10px 20px; border-top:1px solid var(--border-color); overflow:hidden; }
   
   .coin-name { display:flex; align-items:center; gap:8px; font-weight:bold; min-width:0; }
   .coin-name img { width:24px; height:24px; border-radius:4px; flex-shrink:0; }
   .coin-name > div { min-width:0; overflow:hidden; text-overflow:ellipsis; }
-  .coin-sub { color:#848e9c; font-size:12px; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .coin-sub { color: var(--text-dim); font-size:12px; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   
-  .change-up { color:#0ecb81; }
-  .change-down { color:#f6465d; }
+  .change-up { color: var(--green); }
+  .change-down { color: var(--red); }
   canvas { display:block; max-width:100%; }
   
-  /* --- Bottom Nav Fix --- */
   .bottom-nav {
-    position:fixed; bottom:0; left:0; right:0; background:#161a1e;
+    position:fixed; bottom:0; left:0; right:0; background: var(--panel-color);
     display:flex; justify-content:space-around; 
     padding: 10px 0 calc(10px + env(safe-area-inset-bottom)) 0; 
-    border-top:1px solid #2b3139;
+    border-top:1px solid var(--border-color);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
     z-index: 999;
+    transition: background 0.3s;
   }
   .bottom-nav a { text-decoration:none; }
-  .bottom-nav div { text-align:center; color:#848e9c; font-size:11px; cursor:pointer; }
-  .bottom-nav div.active { color:#f0b90b; }
+  .bottom-nav div { text-align:center; color: var(--text-dim); font-size:11px; cursor:pointer; }
+  .bottom-nav div.active { color: var(--gold); }
   .bottom-nav .ic {
     font-size:18px; width:38px; height:38px; line-height:38px;
     margin:0 auto 2px; border-radius:50%; transition:0.2s;
@@ -112,55 +161,78 @@
     box-shadow:0 0 0 6px rgba(240,185,11,0.08);
   }
 
-  /* Page Content top padding dynamic via JS */
-  #page-content { }
-
   .support-icon-btn {
-    width:40px; height:40px; border-radius:50%;
+    width:36px; height:36px; border-radius:50%;
     background:#7C3AED; display:flex; align-items:center; justify-content:center;
-    font-size:20px; cursor:pointer; user-select:none;
+    font-size:18px; cursor:pointer; user-select:none;
     box-shadow:0 2px 8px rgba(124,58,237,0.45);
   }
   .notif-icon-btn {
-    width:40px; height:40px; border-radius:50%;
-    background:#1e2329; display:flex; align-items:center; justify-content:center;
-    font-size:22px; cursor:pointer; user-select:none;
-    color:#eaecef; text-decoration:none;
+    width:36px; height:36px; border-radius:50%;
+    background: var(--panel-hover); display:flex; align-items:center; justify-content:center;
+    font-size:20px; cursor:pointer; user-select:none;
+    color: var(--text-color); text-decoration:none;
+    position: relative;
   }
+  .notif-badge {
+    position:absolute; top:-4px; right:-4px;
+    background:var(--red); color:#fff; font-size:10px; font-weight:bold;
+    min-width:16px; height:16px; border-radius:8px;
+    display:none; align-items:center; justify-content:center;
+    padding:0 4px; line-height:1;
+  }
+  .notif-badge.show { display:flex; }
+  
   .support-menu {
-    position:absolute; top:48px; right:0; background:#1e2329; border:1px solid #2b3139;
+    position:absolute; top:44px; right:0; background: var(--panel-hover); border:1px solid var(--border-color);
     border-radius:12px; min-width:200px; display:none; flex-direction:column;
     overflow:hidden; z-index:100; box-shadow:0 8px 20px rgba(0,0,0,0.45);
   }
   .support-menu.show { display:flex; }
   .support-menu button, .support-menu a {
     display:flex; align-items:center; gap:10px; padding:13px 16px;
-    color:#eaecef; text-decoration:none; background:none; border:none;
+    color: var(--text-color); text-decoration:none; background:none; border:none;
     font-size:14px; cursor:pointer; text-align:left; width:100%; font-family:inherit;
   }
-  .support-menu button:hover, .support-menu a:hover { background:#2b3139; }
-  .support-menu .menu-divider { height:1px; background:#2b3139; margin:0; }
+  .support-menu button:hover, .support-menu a:hover { background: var(--border-color); }
+  .support-menu .menu-divider { height:1px; background: var(--border-color); margin:0; }
   .support-menu .menu-ic { font-size:17px; width:20px; text-align:center; display:flex; align-items:center; justify-content:center; }
   .support-menu .menu-ic svg { width:18px; height:18px; display:block; }
   .support-menu a.live-support-item {
-    background:#f0b90b; color:#202630; font-weight:bold;
+    background: var(--gold); color: var(--btn-text); font-weight:bold;
     border-radius:8px; margin:8px 8px 4px; width:calc(100% - 16px);
   }
-  .support-menu a.live-support-item:hover { background:#d9a70a; }
 </style>
 </head>
 <body>
 
 <div id="sticky-top">
   <header>
-    <h1>Market</h1>
+    <h1 data-i18n="market">Market</h1>
     <div class="icons">
-      <a href="deposit.html" class="deposit-btn">Deposit</a>
+      <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
+        <span id="theme-icon">🌙</span>
+      </button>
+      <select class="lang-select" id="langSelect" onchange="changeLanguage(this.value)">
+        <option value="en">EN</option>
+        <option value="bn">BN</option>
+        <option value="hi">HI</option>
+        <option value="zh">ZH</option>
+        <option value="es">ES</option>
+        <option value="ar">AR</option>
+        <option value="fr">FR</option>
+        <option value="pt">PT</option>
+        <option value="ru">RU</option>
+        <option value="ja">JA</option>
+      </select>
+
+      <a href="deposit.html" class="deposit-btn" data-i18n="deposit">Deposit</a>
+      
       <div class="icon-wrap" id="support-wrap">
-        <div class="support-icon-btn" id="support-icon" aria-label="Support" role="button">&#127911;</div>
+        <div class="support-icon-btn" id="support-icon">&#127911;</div>
         <div class="support-menu" id="support-menu">
           <a href="live-support.html" class="live-support-item">
-            <span class="menu-ic"><svg viewBox="0 0 512 512" fill="#202630"><path d="M256 48C141.1 48 48 141.1 48 256v40c0 13.3-10.7 24-24 24s-24-10.7-24-24V256C0 114.6 114.6 0 256 0S512 114.6 512 256v144.1c0 46.9-38.2 84.9-85.1 84.9H384c0 26.5-21.5 48-48 48H288c-26.5 0-48-21.5-48-48V432c0-26.5 21.5-48 48-48h48c23.7 0 43.9 17.2 47.6 40h17.2c21.3 0 38.7-17.2 38.7-38.9V256c0-114.9-93.1-208-208-208zM144 208h16c17.7 0 32 14.3 32 32V352c0 17.7-14.3 32-32 32H144c-35.3 0-64-28.7-64-64V272c0-35.3 28.7-64 64-64zm224 0c35.3 0 64 28.7 64 64v48c0 35.3-28.7 64-64 64H352c-17.7 0-32-14.3-32-32V240c0-17.7 14.3-32-32-32h16z"/></svg></span> Live Support
+            <span class="menu-ic"><svg viewBox="0 0 512 512" fill="currentColor"><path d="M256 48C141.1 48 48 141.1 48 256v40c0 13.3-10.7 24-24 24s-24-10.7-24-24V256C0 114.6 114.6 0 256 0S512 114.6 512 256v144.1c0 46.9-38.2 84.9-85.1 84.9H384c0 26.5-21.5 48-48 48H288c-26.5 0-48-21.5-48-48V432c0-26.5 21.5-48 48-48h48c23.7 0 43.9 17.2 47.6 40h17.2c21.3 0 38.7-17.2 38.7-38.9V256c0-114.9-93.1-208-208-208zM144 208h16c17.7 0 32 14.3 32 32V352c0 17.7-14.3 32-32 32H144c-35.3 0-64-28.7-64-64V272c0-35.3 28.7-64 64-64zm224 0c35.3 0 64 28.7 64 64v48c0 35.3-28.7 64-64 64H352c-17.7 0-32-14.3-32-32V240c0-17.7 14.3-32-32-32h16z"/></svg></span> <span data-i18n="live_support">Live Support</span>
           </a>
           <div class="menu-divider"></div>
           <a href="https://wa.me/8801XXXXXXXXX" target="_blank" rel="noopener">
@@ -172,7 +244,8 @@
           </a>
         </div>
       </div>
-      <a href="notifications.html" class="icon-link icon-wrap notif-icon-btn" aria-label="Notifications">
+      
+      <a href="notifications.html" class="icon-link notif-icon-btn" aria-label="Notifications">
         &#128276;
         <span class="notif-badge" id="notif-badge">0</span>
       </a>
@@ -180,10 +253,10 @@
   </header>
 
   <div class="tabs">
-    <button class="active" data-tab="crypto">Crypto</button>
-    <button data-tab="forex">Forex</button>
-    <button data-tab="futures">Futures</button>
-    <button data-tab="stocks">Stocks</button>
+    <button class="active" data-tab="crypto" data-i18n="crypto">Crypto</button>
+    <button data-tab="forex" data-i18n="forex">Forex</button>
+    <button data-tab="futures" data-i18n="futures">Futures</button>
+    <button data-tab="stocks" data-i18n="stocks">Stocks</button>
   </div>
 </div>
 
@@ -192,21 +265,26 @@
 
   <table>
     <thead>
-      <tr><th>Name</th><th>Chart</th><th>Price / 24h%</th></tr>
+      <tr>
+        <th data-i18n="name">Name</th>
+        <th data-i18n="chart">Chart</th>
+        <th data-i18n="price_24h">Price / 24h%</th>
+      </tr>
     </thead>
     <tbody id="market-body">
-      <tr><td colspan="3" style="text-align:center; color:#848e9c;">Loading...</td></tr>
+      <tr><td colspan="3" style="text-align:center; color:var(--text-dim);">Loading...</td></tr>
     </tbody>
   </table>
 </div>
 
-<!-- Bottom Nav -->
 <div class="bottom-nav">
-  <a href="market.html"><div class="active"><div class="ic">&#128200;</div>Market</div></a>
-  <a href="trade.html"><div><div class="ic">&#128179;</div>Trade</div></a>
-  <a href="assets.html"><div><div class="ic">&#128188;</div>Assets</div></a>
-  <a href="profile.html"><div><div class="ic">&#128100;</div>Profile</div></a>
+  <a href="market.html"><div class="active"><div class="ic">&#128200;</div><span data-i18n="market">Market</span></div></a>
+  <a href="trade.html"><div><div class="ic">&#128179;</div><span data-i18n="trade">Trade</span></div></a>
+  <a href="assets.html"><div><div class="ic">&#128188;</div><span data-i18n="assets">Assets</span></div></a>
+  <a href="profile.html"><div><div class="ic">&#128100;</div><span data-i18n="profile">Profile</span></div></a>
 </div>
+
+<script src="lang-theme.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -214,11 +292,12 @@
 <script>
 let currentTab = 'crypto';
 
+// হেডারের উচ্চতা অনুযায়ী কন্টেন্ট এরিয়ার প্যাডিং ঠিক করা
 function adjustHeaderOffset(){
   const stickyTop = document.getElementById('sticky-top');
   const pageContent = document.getElementById('page-content');
   if (stickyTop && pageContent){
-    pageContent.style.paddingTop = stickyTop.offsetHeight + 'px';
+    pageContent.style.paddingTop = (stickyTop.offsetHeight + 10) + 'px';
   }
 }
 window.addEventListener('load', adjustHeaderOffset);
@@ -297,7 +376,8 @@ function drawSparkline(canvas, prices, up) {
     const y = h - ((p-min)/((max-min)||1))*h;
     i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
   });
-  ctx.strokeStyle = up ? '#0ecb81' : '#f6465d';
+  const style = getComputedStyle(document.documentElement);
+  ctx.strokeStyle = up ? style.getPropertyValue('--green').trim() : style.getPropertyValue('--red').trim();
   ctx.lineWidth = 1.5;
   ctx.stroke();
 }
@@ -328,7 +408,7 @@ async function loadMarket() {
     renderMarket();
   } catch (err) {
     console.error(err);
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#f6465d;">Error: ' + err.message + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--red);">Error: ' + err.message + '</td></tr>';
   }
 }
 
@@ -425,7 +505,7 @@ const forexList = [
 async function loadForex() {
   const tbody = document.getElementById('market-body');
   const highlightRow = document.getElementById('highlight-row');
-  tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#848e9c;">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--text-dim);">Loading...</td></tr>';
   highlightRow.innerHTML = '';
 
   const dateStrs = [];
@@ -457,7 +537,7 @@ async function loadForex() {
   }));
 
   if (!anySuccess) {
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#f6465d;">Could not load forex data (' + lastError + ').</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--red);">Could not load forex data (' + lastError + ').</td></tr>';
     return;
   }
 
@@ -545,11 +625,11 @@ async function fetchStockWithRetry(symbol, retries = 2) {
 async function loadStocks() {
   const tbody = document.getElementById('market-body');
   const highlightRow = document.getElementById('highlight-row');
-  tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#848e9c;">Loading... (this may take a moment)</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--text-dim);">Loading... (this may take a moment)</td></tr>';
   highlightRow.innerHTML = '';
 
   if (!FINNHUB_API_KEY || FINNHUB_API_KEY === 'YOUR_FINNHUB_API_KEY_HERE') {
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#f6465d;">Please add your Finnhub API key in the code.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--red);">Please add your Finnhub API key in the code.</td></tr>';
     return;
   }
 
@@ -598,7 +678,7 @@ async function loadStocks() {
   }
 
   if (tbody.innerHTML === '') {
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#f6465d;">Could not load stock data. Please try again shortly.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--red);">Could not load stock data. Please try again shortly.</td></tr>';
   }
 }
 
