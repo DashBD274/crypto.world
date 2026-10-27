@@ -1,52 +1,117 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Assets - ABC Company</title>
 <style>
+  :root {
+    --bg-color: #0b0e11;
+    --panel-color: #161a1e;
+    --panel-hover: #1e2329;
+    --text-color: #eaecef;
+    --text-dim: #848e9c;
+    --border-color: #2b3139;
+    --gold: #f0b90b;
+    --btn-text: #202630;
+    --green: #0ecb81;
+    --red: #f6465d;
+  }
+
+  [data-theme="light"] {
+    --bg-color: #ffffff;
+    --panel-color: #f5f5f5;
+    --panel-hover: #e8e8e8;
+    --text-color: #1a1a1a;
+    --text-dim: #666666;
+    --border-color: #dcdcdc;
+    --gold: #d9a70a;
+    --btn-text: #ffffff;
+    --green: #0a9d62;
+    --red: #d9304a;
+  }
+
   * { box-sizing:border-box; }
-  body { margin:0; font-family:Arial, sans-serif; background:#0b0e11; color:#eaecef; padding-bottom:70px; }
-  header { padding:16px 20px; text-align:center; }
-  header h1 { font-size:20px; margin:0; color:#f0b90b; }
+  html { 
+    overflow-x: hidden; 
+    width: 100%; 
+    height: 100%;
+  }
+  
+  body { 
+    margin:0; font-family:Arial, sans-serif; 
+    background: var(--bg-color); color: var(--text-color); 
+    padding-bottom: calc(70px + env(safe-area-inset-bottom)); 
+    width:100%; height: 100vh;
+    overflow: hidden; /* মোবাইলে স্ক্রল বন্ধ */
+    overscroll-behavior: none;
+    -webkit-text-size-adjust:100%;
+    touch-action: pan-y;
+    position: fixed;
+    inset: 0;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  header { 
+    display:flex; align-items:center; justify-content:center; 
+    padding: calc(16px + env(safe-area-inset-top)) 20px 16px; 
+    position:relative; 
+    background: var(--bg-color);
+    border-bottom: 1px solid var(--border-color);
+  }
+  header h1 { font-size:20px; margin:0; color: var(--gold); }
+  .header-controls {
+    position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+    display: flex; gap: 8px; align-items: center;
+  }
+  .icon-btn, .lang-select {
+    background: transparent; border: 1px solid var(--border-color);
+    color: var(--text-color); border-radius: 6px; padding: 4px 6px;
+    cursor: pointer; font-size: 12px; outline: none;
+  }
+  .lang-select option { background: var(--panel-color); color: var(--text-color); }
+
+  /* কন্টেন্ট এরিয়া স্ক্রল হবে */
+  #scroll-container {
+    height: 100vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 80px;
+  }
 
   .balance-card {
-    background:#161a1e; border-radius:12px; margin:16px; padding:20px;
+    background: var(--panel-color); border-radius:12px; margin:16px; padding:20px;
   }
   .balance-title {
     display:flex; align-items:center; gap:6px;
-    color:#848e9c; font-size:14px; margin-bottom:16px;
+    color: var(--text-dim); font-size:14px; margin-bottom:16px;
   }
   .balance-amount {
     display:flex; align-items:baseline; gap:8px; margin-bottom:6px;
   }
   .balance-amount .num { font-size:32px; font-weight:bold; }
-  .balance-amount .cur { color:#848e9c; font-size:15px; }
-  .balance-usd { color:#848e9c; font-size:13px; margin-bottom:20px; }
+  .balance-amount .cur { color: var(--text-dim); font-size:15px; }
+  .balance-usd { color: var(--text-dim); font-size:13px; margin-bottom:20px; }
   .balance-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .balance-actions button {
-    background:#1e2329; border:1px solid #2b3139; color:#eaecef;
+    background: var(--panel-hover); border:1px solid var(--border-color); color: var(--text-color);
     padding:12px 0; border-radius:8px; font-weight:bold; font-size:14px; cursor:pointer;
   }
   .balance-actions .btn-primary {
-    background:#f0b90b;
-    color:#0b0e11;
-    border:1px solid #f0b90b;
+    background: var(--gold); color: var(--btn-text); border:1px solid var(--gold);
   }
   .balance-actions .btn-secondary {
-    background:#2354b8;
-    color:#ffffff;
-    border:1px solid #2354b8;
+    background:#2354b8; color:#ffffff; border:1px solid #2354b8;
   }
 
-  .card { background:#161a1e; border-radius:12px; margin:16px; padding:20px; }
+  .card { background: var(--panel-color); border-radius:12px; margin:16px; padding:20px; }
   .card-title {
-    color:#848e9c; font-size:13px; margin-bottom:8px;
+    color: var(--text-dim); font-size:13px; margin-bottom:8px;
     display:flex; justify-content:space-between; align-items:center;
   }
-  .row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #1e2329; }
+  .row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border-color); }
   .row:last-child { border-bottom:none; }
-  .label { color:#848e9c; font-size:13px; }
+  .label { color: var(--text-dim); font-size:13px; }
   .value { font-weight:bold; word-break:break-all; text-align:right; max-width:60%; }
 
   /* Status badges for pending items */
@@ -55,13 +120,13 @@
     font-size:12px; font-weight:bold;
   }
   .status-pending {
-    background:rgba(240,185,11,0.15); color:#f0b90b;
+    background:rgba(240,185,11,0.15); color: var(--gold);
   }
   .status-approved {
-    background:rgba(14,203,129,0.15); color:#0ecb81;
+    background:rgba(14,203,129,0.15); color: var(--green);
   }
   .status-rejected {
-    background:rgba(246,70,93,0.15); color:#f6465d;
+    background:rgba(246,70,93,0.15); color: var(--red);
   }
 
   /* Profit / Loss badges for trades */
@@ -69,26 +134,30 @@
     display:inline-block; padding:4px 10px; border-radius:8px;
     font-size:13px; font-weight:bold; white-space:nowrap;
   }
-  .pl-profit { background:rgba(14,203,129,0.15); color:#0ecb81; }
-  .pl-loss   { background:rgba(246,70,93,0.15); color:#f6465d; }
+  .pl-profit { background:rgba(14,203,129,0.15); color: var(--green); }
+  .pl-loss   { background:rgba(246,70,93,0.15); color: var(--red); }
 
   /* Trade summary (total profit / total loss) */
   .summary-grid {
     display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;
   }
   .summary-box {
-    background:#1e2329; border-radius:8px; padding:12px;
+    background: var(--panel-hover); border-radius:8px; padding:12px;
   }
-  .summary-box .s-label { color:#848e9c; font-size:12px; margin-bottom:4px; }
+  .summary-box .s-label { color: var(--text-dim); font-size:12px; margin-bottom:4px; }
   .summary-box .s-value { font-size:16px; font-weight:bold; }
 
   .bottom-nav {
-    position:fixed; bottom:0; left:0; right:0; background:#161a1e;
-    display:flex; justify-content:space-around; padding:10px 0;
-    border-top:1px solid #2b3139;
+    position:fixed; bottom:0; left:0; right:0; background: var(--panel-color);
+    display:flex; justify-content:space-around; 
+    padding: 10px 0 calc(10px + env(safe-area-inset-bottom)) 0;
+    border-top:1px solid var(--border-color);
+    z-index: 999;
+    transition: background 0.3s;
   }
-  .bottom-nav div { text-align:center; color:#848e9c; font-size:11px; cursor:pointer; }
-  .bottom-nav div.active { color:#f0b90b; }
+  .bottom-nav a { text-decoration:none; }
+  .bottom-nav div { text-align:center; color: var(--text-dim); font-size:11px; cursor:pointer; }
+  .bottom-nav div.active { color: var(--gold); }
   .bottom-nav .ic {
     font-size:18px; width:38px; height:38px; line-height:38px;
     margin:0 auto 2px; border-radius:50%; transition:0.2s;
@@ -100,51 +169,77 @@
 </style>
 </head>
 <body>
-<header><h1>Assets</h1></header>
 
-<div class="balance-card">
-  <div class="balance-title">
-    Est. Total Value
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
-      <circle cx="12" cy="12" r="3"/>
-    </svg>
+<header>
+  <h1 data-i18n="assets">Assets</h1>
+  <div class="header-controls">
+    <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
+      <span id="theme-icon">🌙</span>
+    </button>
+    <select class="lang-select" id="langSelect" onchange="changeLanguage(this.value)">
+      <option value="en">EN</option>
+      <option value="bn">BN</option>
+      <option value="hi">HI</option>
+      <option value="zh">ZH</option>
+      <option value="es">ES</option>
+      <option value="ar">AR</option>
+      <option value="fr">FR</option>
+      <option value="pt">PT</option>
+      <option value="ru">RU</option>
+      <option value="ja">JA</option>
+    </select>
   </div>
-  <div class="balance-amount">
-    <span class="num" id="balanceNum">0.00</span>
-    <span class="cur">USDT &#9662;</span>
-  </div>
-  <div class="balance-usd" id="balanceUsd">&#8776; $0.00</div>
-</div>
+</header>
 
-<!-- Trades: profit / loss per trade -->
-<div class="card" id="trades-card">
-  <div class="card-title"><span>Recent Trades</span></div>
-  <div id="trades-list">
+<div id="scroll-container">
+  <div class="balance-card">
+    <div class="balance-title">
+      <span data-i18n="est_total_value">Est. Total Value</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    </div>
+    <div class="balance-amount">
+      <span class="num" id="balanceNum">0.00</span>
+      <span class="cur">USDT &#9662;</span>
+    </div>
+    <div class="balance-usd" id="balanceUsd">&#8776; $0.00</div>
+  </div>
+
+  <!-- Trades: profit / loss per trade -->
+  <div class="card" id="trades-card">
+    <div class="card-title"><span data-i18n="recent_trades">Recent Trades</span></div>
+    <div id="trades-list">
+      <div class="row"><span class="label">Loading...</span></div>
+    </div>
+    <div class="summary-grid">
+      <div class="summary-box">
+        <div class="s-label" data-i18n="total_profit">Total Profit</div>
+        <div class="s-value" id="totalProfit" style="color:var(--green);">+0.00 USDT</div>
+      </div>
+      <div class="summary-box">
+        <div class="s-label" data-i18n="total_loss">Total Loss</div>
+        <div class="s-value" id="totalLoss" style="color:var(--red);">-0.00 USDT</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="assets-card">
     <div class="row"><span class="label">Loading...</span></div>
   </div>
-  <div class="summary-grid">
-    <div class="summary-box">
-      <div class="s-label">Total Profit</div>
-      <div class="s-value" id="totalProfit" style="color:#0ecb81;">+0.00 USDT</div>
-    </div>
-    <div class="summary-box">
-      <div class="s-label">Total Loss</div>
-      <div class="s-value" id="totalLoss" style="color:#f6465d;">-0.00 USDT</div>
-    </div>
-  </div>
-</div>
-
-<div class="card" id="assets-card">
-  <div class="row"><span class="label">Loading...</span></div>
 </div>
 
 <div class="bottom-nav">
-  <a href="market.html" style="text-decoration:none;"><div><div class="ic">&#128200;</div>Market</div></a>
-  <a href="trade.html" style="text-decoration:none;"><div><div class="ic">&#128179;</div>Trade</div></a>
-  <div class="active"><div class="ic">&#128188;</div>Assets</div>
-  <a href="profile.html" style="text-decoration:none;"><div><div class="ic">&#128100;</div>Profile</div></a>
+  <a href="market.html"><div><div class="ic">&#128200;</div><span data-i18n="market">Market</span></div></a>
+  <a href="trade.html"><div><div class="ic">&#128179;</div><span data-i18n="trade">Trade</span></div></a>
+  <div class="active"><div class="ic">&#128188;</div><span data-i18n="assets">Assets</span></div>
+  <a href="profile.html"><div><div class="ic">&#128100;</div><span data-i18n="profile">Profile</span></div></a>
 </div>
+
+<!-- ★★★ lang-theme.js যুক্ত করা হলো ★★★ -->
+<script src="lang-theme.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -159,8 +254,7 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 
-// ---- Show cached data instantly (no "Loading..." flash on repeat visits) ----
-// The real Firebase data below overwrites this the moment it arrives.
+// ---- Show cached data instantly ----
 (function showCachedAssets() {
   try {
     const cached = JSON.parse(localStorage.getItem('assetsCache') || 'null');
@@ -207,7 +301,6 @@ firebase.auth().onAuthStateChanged(async user => {
 
   const db = firebase.firestore();
 
-  // Turns a Firestore Timestamp (or missing value) into "DD Mon YYYY, HH:MM"
   function formatDate(ts) {
     if (!ts || !ts.toDate) return '—';
     const d = ts.toDate();
@@ -215,23 +308,12 @@ firebase.auth().onAuthStateChanged(async user => {
       ', ' + d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
   }
 
-  // Maps a deposit/withdrawal's Firestore status to what the badge should show.
   function statusBadge(status) {
     if (status === 'approved') return { text: 'Success', cls: 'status-approved' };
     if (status === 'rejected') return { text: 'Reject', cls: 'status-rejected' };
     return { text: 'Pending', cls: 'status-pending' };
   }
 
-  // ---- Trades: profit / loss list ----
-  // Matches the real fields written by trade.html's placeTrade():
-  //   uid, symbol, amount, expectedReturn, orderNumber, createdAt,
-  //   status ("pending" while running, "completed" once resolved),
-  //   result ("win" / "lose" / "tie", only set once completed)
-  // Profit/loss is DERIVED here (trade.html doesn't store a "profit" field):
-  //   win  -> +expectedReturn
-  //   lose -> -amount (the stake is lost)
-  //   tie  -> 0
-  //   pending (not resolved yet) -> shown as "Pending", no P/L badge
   const tradesList = document.getElementById('trades-list');
   const totalProfitEl = document.getElementById('totalProfit');
   const totalLossEl = document.getElementById('totalLoss');
@@ -255,12 +337,12 @@ firebase.auth().onAuthStateChanged(async user => {
       <div class="row">
         <span class="label">
           ${t.symbol}
-          <div style="margin-top:4px; font-size:12px; color:#5e6673;">${t.date}</div>
-          <div style="margin-top:2px; font-size:12px; color:#5e6673;">Ref: ${t.serial}</div>
+          <div style="margin-top:4px; font-size:12px; color:var(--text-dim);">${t.date}</div>
+          <div style="margin-top:2px; font-size:12px; color:var(--text-dim);">Ref: ${t.serial}</div>
         </span>
         <span class="value" style="text-align:right;">
           ${badge}
-          ${pending ? '' : `<div style="margin-top:4px; font-size:12px; color:#5e6673;">${statusLabel(t.status)}</div>`}
+          ${pending ? '' : `<div style="margin-top:4px; font-size:12px; color:var(--text-dim);">${statusLabel(t.status)}</div>`}
         </span>
       </div>
     `;
@@ -277,7 +359,7 @@ firebase.auth().onAuthStateChanged(async user => {
     const totalProfit = completed.filter(t => t.profit > 0).reduce((s, t) => s + t.profit, 0);
     const totalLoss = completed.filter(t => t.profit < 0).reduce((s, t) => s + t.profit, 0);
     totalProfitEl.textContent = `+${totalProfit.toFixed(2)} USDT`;
-    totalLossEl.textContent = `${totalLoss.toFixed(2)} USDT`; // already negative
+    totalLossEl.textContent = `${totalLoss.toFixed(2)} USDT`; 
 
     saveAssetsCache({
       tradesHtml: tradesList.innerHTML,
@@ -295,11 +377,10 @@ firebase.auth().onAuthStateChanged(async user => {
           let profit = 0;
           if (data.result === 'win') profit = data.expectedReturn || 0;
           else if (data.result === 'lose') profit = -(data.amount || 0);
-          // 'tie' or not yet resolved -> profit stays 0
           return {
-            symbol: data.symbol || '—',                 // e.g. "ETHUSDT"
+            symbol: data.symbol || '—',
             profit: profit,
-            status: data.status || 'pending',            // "pending" | "completed" | "error"
+            status: data.status || 'pending',
             date: formatDate(data.createdAt),
             serial: data.orderNumber || d.id
           };
@@ -309,13 +390,11 @@ firebase.auth().onAuthStateChanged(async user => {
   } catch (e) {
     tradesList.innerHTML = `<div class="row"><span class="label">Failed to load trades</span></div>`;
   }
-  // -------------------------------------
 
-  // ---- Asset breakdown (deposits / withdrawals) ----
   const card = document.getElementById('assets-card');
 
-  let deposits = [];    // [{ amount, date, serial, status }]
-  let withdrawals = []; // [{ amount, date, serial, status }]
+  let deposits = [];
+  let withdrawals = [];
 
   function renderRow(label, item) {
     const badge = statusBadge(item.status);
@@ -323,8 +402,8 @@ firebase.auth().onAuthStateChanged(async user => {
       <div class="row">
         <span class="label">
           ${label}
-          <div style="margin-top:4px; font-size:12px; color:#5e6673;">${item.date}</div>
-          <div style="margin-top:2px; font-size:12px; color:#5e6673;">Ref: ${item.serial}</div>
+          <div style="margin-top:4px; font-size:12px; color:var(--text-dim);">${item.date}</div>
+          <div style="margin-top:2px; font-size:12px; color:var(--text-dim);">Ref: ${item.serial}</div>
         </span>
         <span class="value">${item.amount.toFixed(2)} USDT <span class="status-badge ${badge.cls}">${badge.text}</span></span>
       </div>
