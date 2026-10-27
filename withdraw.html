@@ -1,51 +1,126 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Withdraw - ABC Company</title>
 <style>
+  /* ★★★ ডার্ক ও লাইট মোডের জন্য CSS ভেরিয়েবল ★★★ */
+  :root {
+    --bg-color: #0b0e11;
+    --panel-color: #161a1e;
+    --panel-hover: #1e2329;
+    --text-color: #eaecef;
+    --text-dim: #848e9c;
+    --border-color: #2b3139;
+    --gold: #f0b90b;
+    --btn-text: #202630;
+    --green: #0ecb81;
+    --red: #f6465d;
+    --blue: #2f6fed;
+  }
+
+  [data-theme="light"] {
+    --bg-color: #ffffff;
+    --panel-color: #f5f5f5;
+    --panel-hover: #e8e8e8;
+    --text-color: #1a1a1a;
+    --text-dim: #666666;
+    --border-color: #dcdcdc;
+    --gold: #d9a70a;
+    --btn-text: #ffffff;
+    --green: #0a9d62;
+    --red: #d9304a;
+    --blue: #2354b8;
+  }
+
   * { box-sizing:border-box; }
-  body { margin:0; font-family:Arial, sans-serif; background:#0b0e11; color:#eaecef; padding-bottom:40px; }
-  header { display:flex; align-items:center; gap:10px; padding:16px 20px; }
-  .back-btn { background:none; border:none; color:#eaecef; font-size:20px; cursor:pointer; padding:0; }
+  html { 
+    overflow-x: hidden; 
+    width: 100%; 
+    height: 100%;
+  }
+  
+  body { 
+    margin:0; font-family:Arial, sans-serif; 
+    background: var(--bg-color); color: var(--text-color); 
+    padding-bottom: calc(40px + env(safe-area-inset-bottom)); 
+    width:100%; height: 100vh;
+    /* মোবাইলে স্ক্রল ও জুম বন্ধ করতে */
+    overflow: hidden; 
+    overscroll-behavior: none;
+    -webkit-text-size-adjust:100%;
+    touch-action: pan-y;
+    position: fixed;
+    inset: 0;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  header { 
+    display:flex; align-items:center; gap:10px; 
+    padding: calc(16px + env(safe-area-inset-top)) 20px 16px; 
+    position:relative; 
+    background: var(--bg-color);
+    border-bottom: 1px solid var(--border-color);
+  }
+  .back-btn { background:none; border:none; color: var(--text-color); font-size:20px; cursor:pointer; padding:0; }
   header img { width:20px; height:20px; }
-  header span { font-size:14px; color:#848e9c; }
+  header span { font-size:14px; color: var(--text-dim); }
+
+  .header-controls {
+    position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+    display: flex; gap: 8px; align-items: center;
+  }
+  .icon-btn, .lang-select {
+    background: transparent; border: 1px solid var(--border-color);
+    color: var(--text-color); border-radius: 6px; padding: 4px 6px;
+    cursor: pointer; font-size: 12px; outline: none;
+  }
+  .lang-select option { background: var(--panel-color); color: var(--text-color); }
+
+  /* কন্টেন্ট এরিয়া স্ক্রল হবে */
+  #scroll-container {
+    height: 100vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 80px;
+  }
 
   .content { padding:0 20px; }
   h2 { font-size:20px; margin:0 0 20px; }
 
-  .field-label { font-size:12px; color:#848e9c; margin-bottom:6px; }
+  .field-label { font-size:12px; color: var(--text-dim); margin-bottom:6px; }
   .field-row {
-    display:flex; align-items:center; background:#161a1e; border:1px solid #2b3139;
+    display:flex; align-items:center; background: var(--panel-color); border:1px solid var(--border-color);
     border-radius:8px; margin-bottom:16px; overflow:hidden;
   }
   .field-row input {
-    flex:1; background:transparent; border:none; color:#eaecef;
-    padding:14px; font-size:15px; outline:none;
+    flex:1; background:transparent; border:none; color: var(--text-color);
+    padding:14px; font-size:16px; outline:none; /* font-size 16px for iOS */
   }
-  .field-row input::placeholder { color:#5b6169; }
+  .field-row input::placeholder { color: var(--text-dim); }
+  
   .coin-select {
-    background:#1e2329; border:none; border-left:1px solid #2b3139; color:#eaecef;
+    background: var(--panel-hover); border:none; border-left:1px solid var(--border-color); color: var(--text-color);
     padding:14px 12px; font-weight:bold; font-size:14px; cursor:pointer; outline:none;
   }
 
-  .error-msg { text-align:center; font-size:12px; color:#f6465d; margin-bottom:10px; min-height:14px; }
+  .error-msg { text-align:center; font-size:12px; color: var(--red); margin-bottom:10px; min-height:14px; }
 
   .withdraw-btn {
-    width:100%; background:#2f6fed; color:#fff; border:none;
+    width:100%; background: var(--blue); color:#fff; border:none;
     padding:15px; border-radius:10px; font-weight:bold; font-size:16px; cursor:pointer; margin-bottom:20px;
   }
   .withdraw-btn:disabled { opacity:0.6; cursor:not-allowed; }
 
-  .info-text { text-align:center; color:#848e9c; font-size:12.5px; line-height:1.7; margin-bottom:10px; }
+  .info-text { text-align:center; color: var(--text-dim); font-size:12.5px; line-height:1.7; margin-bottom:10px; }
 
   .status-msg {
     text-align:center; font-size:13px; margin-top:14px; padding:10px;
     border-radius:8px; display:none;
   }
-  .status-msg.show { display:block; background:rgba(14,203,129,0.12); color:#0ecb81; }
-  .status-msg.error { background:rgba(246,70,93,0.12); color:#f6465d; }
+  .status-msg.show { display:block; background:rgba(14,203,129,0.12); color: var(--green); }
+  .status-msg.error { background:rgba(246,70,93,0.12); color: var(--red); }
 </style>
 </head>
 <body>
@@ -53,34 +128,59 @@
 <header>
   <a href="profile.html" class="back-btn">&#8592;</a>
   <img id="header-icon" src="" alt="">
-  <span id="header-label">Withdraw</span>
+  <span id="header-label" data-i18n="withdraw">Withdraw</span>
+  
+  <div class="header-controls">
+    <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
+      <span id="theme-icon">🌙</span>
+    </button>
+    <select class="lang-select" id="langSelect" onchange="changeLanguage(this.value)">
+      <option value="en">EN</option>
+      <option value="bn">BN</option>
+      <option value="hi">HI</option>
+      <option value="zh">ZH</option>
+      <option value="es">ES</option>
+      <option value="ar">AR</option>
+      <option value="fr">FR</option>
+      <option value="pt">PT</option>
+      <option value="ru">RU</option>
+      <option value="ja">JA</option>
+    </select>
+  </div>
 </header>
 
-<div class="content">
-  <h2>Withdraw</h2>
+<div id="scroll-container">
+  <div class="content">
+    <h2 data-i18n="withdraw">Withdraw</h2>
 
-  <div class="field-label">Amount (USD):</div>
-  <div class="field-row">
-    <input type="number" id="amount-input" placeholder="Amount...">
-    <select class="coin-select" id="coin-select"></select>
+    <div class="field-label" data-i18n="amount_usd">Amount (USD):</div>
+    <div class="field-row">
+      <input type="number" id="amount-input" placeholder="Amount...">
+      <select class="coin-select" id="coin-select"></select>
+    </div>
+
+    <div class="field-label" data-i18n="receiving_address">Receiving address:</div>
+    <div class="field-row">
+      <input type="text" id="address-input" placeholder="Address...">
+    </div>
+
+    <div class="error-msg" id="error-msg"></div>
+
+    <button class="withdraw-btn" id="withdraw-btn" data-i18n="withdraw_now">Withdraw now</button>
+
+    <div class="info-text" data-i18n="withdraw_info">
+      Your withdrawal will be sent to your wallet address within the next 24 hours, please be patient and wait for the review to arrive.
+    </div>
+    <div class="info-text" data-i18n="withdraw_fee">
+      The currency withdrawal fee is 2%
+    </div>
+
+    <div class="status-msg" id="status-msg"></div>
   </div>
-
-  <div class="field-label">Receiving address:</div>
-  <div class="field-row">
-    <input type="text" id="address-input" placeholder="Address...">
-  </div>
-
-  <div class="error-msg" id="error-msg"></div>
-
-  <button class="withdraw-btn" id="withdraw-btn">Withdraw now</button>
-
-  <div class="info-text">
-    Your withdrawal will be sent to your wallet address within the next 24 hours, please be patient and wait for the review to arrive.
-  </div>
-  <div class="info-text">The currency withdrawal fee is 2%</div>
-
-  <div class="status-msg" id="status-msg"></div>
 </div>
+
+<!-- ★★★ lang-theme.js যুক্ত করা হলো ★★★ -->
+<script src="lang-theme.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -124,7 +224,7 @@ function updateHeader() {
   const symbol = document.getElementById('coin-select').value;
   const coin = coinList.find(c => c.symbol === symbol);
   document.getElementById('header-icon').src = iconUrl(coin.icon);
-  document.getElementById('header-label').textContent = symbol + ' Withdraw';
+  // header-label translation update handled by global changeLanguage
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -150,6 +250,8 @@ document.getElementById('withdraw-btn').addEventListener('click', async () => {
   const errorEl = document.getElementById('error-msg');
   const statusEl = document.getElementById('status-msg');
   const btn = document.getElementById('withdraw-btn');
+  const lang = localStorage.getItem('appLang') || 'en';
+  
   errorEl.textContent = '';
   statusEl.classList.remove('show', 'error');
 
@@ -158,15 +260,15 @@ document.getElementById('withdraw-btn').addEventListener('click', async () => {
   const symbol = document.getElementById('coin-select').value;
 
   if (isNaN(amount) || amount <= 0) {
-    errorEl.textContent = 'Please enter a valid amount.';
+    errorEl.textContent = translations[lang]['invalid_amount'] || 'Please enter a valid amount.';
     return;
   }
   if (!address) {
-    errorEl.textContent = 'Please enter a receiving address.';
+    errorEl.textContent = translations[lang]['enter_address'] || 'Please enter a receiving address.';
     return;
   }
   if (amount > currentBalance) {
-    errorEl.textContent = 'Insufficient balance.';
+    errorEl.textContent = translations[lang]['insufficient_balance'] || 'Insufficient balance.';
     return;
   }
 
@@ -195,7 +297,7 @@ document.getElementById('withdraw-btn').addEventListener('click', async () => {
 
     currentBalance -= amount;
     statusEl.className = 'status-msg show';
-    statusEl.textContent = 'Your withdrawal request has been submitted and is pending review.';
+    statusEl.textContent = translations[lang]['withdraw_success'] || 'Your withdrawal request has been submitted and is pending review.';
     document.getElementById('amount-input').value = '';
     document.getElementById('address-input').value = '';
   } catch (err) {
@@ -203,7 +305,8 @@ document.getElementById('withdraw-btn').addEventListener('click', async () => {
     statusEl.textContent = 'Something went wrong: ' + err.message;
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Withdraw now';
+    // Update text according to current language
+    btn.textContent = translations[localStorage.getItem('appLang') || 'en']['withdraw_now'] || 'Withdraw now';
   }
 });
 </script>
