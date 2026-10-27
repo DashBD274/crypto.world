@@ -37,30 +37,24 @@
     margin: 0; padding: 0; height: 100%; width: 100%;
     background: var(--bg-color); color: var(--text-color);
     font-family: Arial, sans-serif;
-    overflow: hidden;
+    /* উপরে-নিচে স্ক্রল থাকবে, কিন্তু ডানে-বামে সরবে না */
+    overflow-y: auto;
+    overflow-x: hidden;
     overscroll-behavior: none;
     -webkit-text-size-adjust: 100%;
-    position: fixed;
-    inset: 0;
+    touch-action: pan-y;
     transition: background 0.3s, color 0.3s;
   }
 
-  /* পুরো লেআউট flex Column-এ সাজানো */
-  #app-layout {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    height: 100dvh;
-    height: calc(var(--app-height, 100vh));
-  }
-
+  /* হেডার ফিক্সড থাকবে */
   header { 
+    position: fixed;
+    top: 0; left: 0; right: 0;
     display:flex; align-items:center; justify-content:center; 
     padding: calc(16px + env(safe-area-inset-top)) 20px 16px; 
-    position:relative; 
     background: var(--bg-color);
     border-bottom: 1px solid var(--border-color);
-    flex-shrink: 0;
+    z-index: 1000;
   }
   header h1 { font-size:20px; margin:0; color: var(--gold); }
   
@@ -75,13 +69,10 @@
   }
   .lang-select option { background: var(--panel-color); color: var(--text-color); }
 
-  /* স্ক্রল কন্টেইনার - শুধু এটাই স্ক্রল হবে */
-  #scroll-container {
-    flex: 1;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 80px;
-    min-height: 0; /* flex এর ভেতরে স্ক্রল ঠিকমতো কাজ করার জন্য */
+  /* মেইন কন্টেন্ট - হেডার ও বটম নেভের মাঝে */
+  .main-content {
+    padding-top: 80px; /* হেডারের উচ্চতা */
+    padding-bottom: 90px; /* বটম নেভের উচ্চতা */
   }
 
   .balance-card {
@@ -122,13 +113,13 @@
   }
   .logout-btn:active { opacity: 0.8; }
 
+  /* বটম নেভ ফিক্সড */
   .bottom-nav {
     position:fixed; bottom:0; left:0; right:0; background: var(--panel-color);
     display:flex; justify-content:space-around; 
     padding: 10px 0 calc(10px + env(safe-area-inset-bottom)) 0;
     border-top:1px solid var(--border-color);
     z-index: 999;
-    flex-shrink: 0;
     transition: background 0.3s;
   }
   .bottom-nav a { text-decoration:none; }
@@ -146,61 +137,59 @@
 </head>
 <body>
 
-<div id="app-layout">
-  <header>
-    <h1 data-i18n="profile">Profile</h1>
-    <div class="header-controls">
-      <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
-        <span id="theme-icon">🌙</span>
-      </button>
-      <select class="lang-select" id="langSelect" onchange="changeLanguage(this.value)">
-        <option value="en">EN</option>
-        <option value="bn">BN</option>
-        <option value="hi">HI</option>
-        <option value="zh">ZH</option>
-        <option value="es">ES</option>
-        <option value="ar">AR</option>
-        <option value="fr">FR</option>
-        <option value="pt">PT</option>
-        <option value="ru">RU</option>
-        <option value="ja">JA</option>
-      </select>
-    </div>
-  </header>
+<header>
+  <h1 data-i18n="profile">Profile</h1>
+  <div class="header-controls">
+    <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
+      <span id="theme-icon">🌙</span>
+    </button>
+    <select class="lang-select" id="langSelect" onchange="changeLanguage(this.value)">
+      <option value="en">EN</option>
+      <option value="bn">BN</option>
+      <option value="hi">HI</option>
+      <option value="zh">ZH</option>
+      <option value="es">ES</option>
+      <option value="ar">AR</option>
+      <option value="fr">FR</option>
+      <option value="pt">PT</option>
+      <option value="ru">RU</option>
+      <option value="ja">JA</option>
+    </select>
+  </div>
+</header>
 
-  <div id="scroll-container">
-    <div class="balance-card">
-      <div class="balance-title">
-        <span data-i18n="est_total_value">Est. Total Value</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-      </div>
-      <div class="balance-amount">
-        <span class="num" id="balanceNum">0.00</span>
-        <span class="cur">USDT &#9662;</span>
-      </div>
-      <div class="balance-usd" id="balanceUsd">&#8776; $0.00</div>
-      <div class="balance-actions">
-        <button class="btn-primary" onclick="location.href='deposit.html'" data-i18n="deposit">Deposit</button>
-        <button class="btn-secondary" onclick="location.href='withdraw.html'" data-i18n="withdraw">Withdraw</button>
-      </div>
+<div class="main-content">
+  <div class="balance-card">
+    <div class="balance-title">
+      <span data-i18n="est_total_value">Est. Total Value</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
     </div>
-
-    <div class="card" id="profile-card">
-      <div class="row"><span class="label">Loading...</span></div>
+    <div class="balance-amount">
+      <span class="num" id="balanceNum">0.00</span>
+      <span class="cur">USDT &#9662;</span>
     </div>
-    
-    <button class="logout-btn" onclick="logOut()" data-i18n="logout">Log Out</button>
+    <div class="balance-usd" id="balanceUsd">&#8776; $0.00</div>
+    <div class="balance-actions">
+      <button class="btn-primary" onclick="location.href='deposit.html'" data-i18n="deposit">Deposit</button>
+      <button class="btn-secondary" onclick="location.href='withdraw.html'" data-i18n="withdraw">Withdraw</button>
+    </div>
   </div>
 
-  <div class="bottom-nav">
-    <a href="market.html"><div><div class="ic">&#128200;</div><span data-i18n="market">Market</span></div></a>
-    <a href="trade.html"><div><div class="ic">&#128179;</div><span data-i18n="trade">Trade</span></div></a>
-    <a href="assets.html"><div><div class="ic">&#128188;</div><span data-i18n="assets">Assets</span></div></a>
-    <div class="active"><div class="ic">&#128100;</div><span data-i18n="profile">Profile</span></div>
+  <div class="card" id="profile-card">
+    <div class="row"><span class="label">Loading...</span></div>
   </div>
+  
+  <button class="logout-btn" onclick="logOut()" data-i18n="logout">Log Out</button>
+</div>
+
+<div class="bottom-nav">
+  <a href="market.html"><div><div class="ic">&#128200;</div><span data-i18n="market">Market</span></div></a>
+  <a href="trade.html"><div><div class="ic">&#128179;</div><span data-i18n="trade">Trade</span></div></a>
+  <a href="assets.html"><div><div class="ic">&#128188;</div><span data-i18n="assets">Assets</span></div></a>
+  <div class="active"><div class="ic">&#128100;</div><span data-i18n="profile">Profile</span></div>
 </div>
 
 <script src="lang-theme.js"></script>
