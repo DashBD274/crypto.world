@@ -37,30 +37,24 @@
     margin: 0; padding: 0; height: 100%; width: 100%;
     background: var(--bg-color); color: var(--text-color);
     font-family: Arial, sans-serif;
-    overflow: hidden;
+    /* উপরে-নিচে স্ক্রল থাকবে, কিন্তু ডানে-বামে সরবে না */
+    overflow-y: auto;
+    overflow-x: hidden;
     overscroll-behavior: none;
     -webkit-text-size-adjust: 100%;
-    position: fixed;
-    inset: 0;
+    touch-action: pan-y;
     transition: background 0.3s, color 0.3s;
   }
 
-  /* পুরো লেআউট flex Column */
-  #app-layout {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    height: 100dvh;
-    height: calc(var(--app-height, 100vh));
-  }
-
+  /* হেডার ফিক্সড থাকবে */
   header { 
+    position: fixed;
+    top: 0; left: 0; right: 0;
     display:flex; align-items:center; gap:10px; 
     padding: calc(12px + env(safe-area-inset-top)) 20px 12px; 
-    position:relative; 
     background: var(--bg-color);
     border-bottom: 1px solid var(--border-color);
-    flex-shrink: 0;
+    z-index: 1000;
   }
   header h1 { font-size:17px; margin:0; display: flex; align-items: center; gap: 6px; }
   .back-btn { background:none; border:none; color: var(--text-color); font-size:20px; cursor:pointer; padding:0; }
@@ -77,13 +71,10 @@
   }
   .lang-select option { background: var(--panel-color); color: var(--text-color); }
 
-  /* স্ক্রল কন্টেইনার */
-  #scroll-container {
-    flex: 1;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 80px;
-    min-height: 0;
+  /* মেইন কন্টেন্ট - হেডার ও বটম নেভের মাঝে */
+  .main-content {
+    padding-top: 80px; /* হেডারের উচ্চতা */
+    padding-bottom: 90px; /* বটম নেভের উচ্চতা */
   }
 
   .tabs { display:flex; gap:8px; padding:16px 16px 10px; overflow-x:auto; }
@@ -163,13 +154,13 @@
 
   .loading-state { text-align:center; padding:60px 20px; color: var(--text-dim); font-size:14px; }
 
+  /* বটম নেভ ফিক্সড */
   .bottom-nav {
     position:fixed; bottom:0; left:0; right:0; background: var(--panel-color);
     display:flex; justify-content:space-around; 
     padding: 10px 0 calc(10px + env(safe-area-inset-bottom)) 0;
     border-top:1px solid var(--border-color);
     z-index: 999;
-    flex-shrink: 0;
     transition: background 0.3s;
   }
   .bottom-nav a { text-decoration:none; }
@@ -187,72 +178,70 @@
 </head>
 <body>
 
-<div id="app-layout">
-  <header>
-    <a href="profile.html" class="back-btn">&#8592;</a>
-    <h1><span data-i18n="deposit">Deposit</span> <img class="asset-icon-header" id="header-icon" src="" alt=""></h1>
-    <div class="header-controls">
-      <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
-        <span id="theme-icon">🌙</span>
-      </button>
-      <select class="lang-select" id="langSelect" onchange="changeLanguage(this.value)">
-        <option value="en">EN</option>
-        <option value="bn">BN</option>
-        <option value="hi">HI</option>
-        <option value="zh">ZH</option>
-        <option value="es">ES</option>
-        <option value="ar">AR</option>
-        <option value="fr">FR</option>
-        <option value="pt">PT</option>
-        <option value="ru">RU</option>
-        <option value="ja">JA</option>
-      </select>
-    </div>
-  </header>
+<header>
+  <a href="profile.html" class="back-btn">&#8592;</a>
+  <h1><span data-i18n="deposit">Deposit</span> <img class="asset-icon-header" id="header-icon" src="" alt=""></h1>
+  <div class="header-controls">
+    <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
+      <span id="theme-icon">🌙</span>
+    </button>
+    <select class="lang-select" id="langSelect" onchange="changeLanguage(this.value)">
+      <option value="en">EN</option>
+      <option value="bn">BN</option>
+      <option value="hi">HI</option>
+      <option value="zh">ZH</option>
+      <option value="es">ES</option>
+      <option value="ar">AR</option>
+      <option value="fr">FR</option>
+      <option value="pt">PT</option>
+      <option value="ru">RU</option>
+      <option value="ja">JA</option>
+    </select>
+  </div>
+</header>
 
-  <div id="scroll-container">
-    <div id="loading-section" class="loading-state">
-      Loading deposit options...
-    </div>
+<div class="main-content">
+  <div id="loading-section" class="loading-state">
+    Loading deposit options...
+  </div>
 
-    <div id="deposit-section" style="display:none;">
-      <div class="tabs" id="asset-tabs"></div>
+  <div id="deposit-section" style="display:none;">
+    <div class="tabs" id="asset-tabs"></div>
 
-      <div class="content">
-        <div class="network-label" id="network-label">Network: -</div>
-        <div class="address-box" id="address-box">-</div>
-        <button class="copy-btn" id="copy-btn" data-i18n="copy_address">Copy address</button>
+    <div class="content">
+      <div class="network-label" id="network-label">Network: -</div>
+      <div class="address-box" id="address-box">-</div>
+      <button class="copy-btn" id="copy-btn" data-i18n="copy_address">Copy address</button>
 
-        <div class="qr-wrap">
-          <img id="qr-img" src="" alt="QR code">
-          <div class="upload-progress" id="upload-progress">
-            <div class="spinner-circle" id="spinner-circle">
-              <span class="checkmark" id="checkmark">&#10003;</span>
-            </div>
-            <div class="progress-text" id="progress-text">Uploading...</div>
+      <div class="qr-wrap">
+        <img id="qr-img" src="" alt="QR code">
+        <div class="upload-progress" id="upload-progress">
+          <div class="spinner-circle" id="spinner-circle">
+            <span class="checkmark" id="checkmark">&#10003;</span>
           </div>
+          <div class="progress-text" id="progress-text">Uploading...</div>
         </div>
-
-        <div class="warning-box" data-i18n="deposit_warning">
-          Please do not send other types of assets to the above address. This action may result in the loss of your assets. After the transmission is successful, the network node needs to confirm receipt of the corresponding assets. After the transfer is successful, please contact online customer service for confirmation.
-        </div>
-
-        <div class="amount-label" id="amount-label">How much have you deposited?</div>
-        <input type="number" class="amount-input" id="amount-input" placeholder="Enter deposit amount">
-        <div class="amount-error" id="amount-error"></div>
-
-        <input type="file" id="proof-input" accept="image/*" style="display:none;">
-        <button class="upload-btn" id="upload-btn" data-i18n="upload_proof">Upload Proof</button>
       </div>
+
+      <div class="warning-box" data-i18n="deposit_warning">
+        Please do not send other types of assets to the above address. This action may result in the loss of your assets. After the transmission is successful, the network node needs to confirm receipt of the corresponding assets. After the transfer is successful, please contact online customer service for confirmation.
+      </div>
+
+      <div class="amount-label" id="amount-label">How much have you deposited?</div>
+      <input type="number" class="amount-input" id="amount-input" placeholder="Enter deposit amount">
+      <div class="amount-error" id="amount-error"></div>
+
+      <input type="file" id="proof-input" accept="image/*" style="display:none;">
+      <button class="upload-btn" id="upload-btn" data-i18n="upload_proof">Upload Proof</button>
     </div>
   </div>
+</div>
 
-  <div class="bottom-nav">
-    <a href="market.html"><div><div class="ic">&#128200;</div><span data-i18n="market">Market</span></div></a>
-    <a href="trade.html"><div><div class="ic">&#128179;</div><span data-i18n="trade">Trade</span></div></a>
-    <a href="assets.html"><div><div class="ic">&#128188;</div><span data-i18n="assets">Assets</span></div></a>
-    <div class="active"><div class="ic">&#128100;</div><span data-i18n="profile">Profile</span></div>
-  </div>
+<div class="bottom-nav">
+  <a href="market.html"><div><div class="ic">&#128200;</div><span data-i18n="market">Market</span></div></a>
+  <a href="trade.html"><div><div class="ic">&#128179;</div><span data-i18n="trade">Trade</span></div></a>
+  <a href="assets.html"><div><div class="ic">&#128188;</div><span data-i18n="assets">Assets</span></div></a>
+  <div class="active"><div class="ic">&#128100;</div><span data-i18n="profile">Profile</span></div>
 </div>
 
 <script src="lang-theme.js"></script>
