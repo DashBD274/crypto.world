@@ -37,7 +37,7 @@
     margin: 0; padding: 0; height: 100%; width: 100%;
     background: var(--bg-color); color: var(--text-color);
     font-family: Arial, sans-serif;
-    overflow: hidden; /* পুরো পেজ স্ক্রল বন্ধ */
+    overflow: hidden;
     overscroll-behavior: none;
     -webkit-text-size-adjust: 100%;
     position: fixed;
@@ -60,7 +60,7 @@
     position:relative; 
     background: var(--bg-color);
     border-bottom: 1px solid var(--border-color);
-    flex-shrink: 0; /* হেডার ছোট হবে না */
+    flex-shrink: 0;
   }
   header h1 { font-size:20px; margin:0; color: var(--gold); }
   
@@ -77,10 +77,11 @@
 
   /* স্ক্রল কন্টেইনার - শুধু এটাই স্ক্রল হবে */
   #scroll-container {
-    flex: 1; /* বাকি জায়গা নেবে */
+    flex: 1;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 80px; /* বটম নেভের জন্য জায়গা */
+    padding-bottom: 80px;
+    min-height: 0; /* flex এর ভেতরে স্ক্রল ঠিকমতো কাজ করার জন্য */
   }
 
   .balance-card {
