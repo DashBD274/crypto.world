@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Profile - ABC Company</title>
 <style>
-  /* ★★★ ডার্ক ও লাইট মোডের জন্য CSS ভেরিয়েবল ★★★ */
   :root {
     --bg-color: #0b0e11;
     --panel-color: #161a1e;
@@ -33,25 +32,26 @@
   }
 
   * { box-sizing:border-box; }
-  html { 
-    overflow-x: hidden; 
-    width: 100%; 
-    height: 100%;
-  }
   
-  body { 
-    margin:0; font-family:Arial, sans-serif; 
-    background: var(--bg-color); color: var(--text-color); 
-    padding-bottom: calc(70px + env(safe-area-inset-bottom)); 
-    width:100%; height: 100vh;
-    /* মোবাইলে স্ক্রল ও জুম বন্ধ করতে */
-    overflow: hidden; 
+  html, body {
+    margin: 0; padding: 0; height: 100%; width: 100%;
+    background: var(--bg-color); color: var(--text-color);
+    font-family: Arial, sans-serif;
+    overflow: hidden; /* পুরো পেজ স্ক্রল বন্ধ */
     overscroll-behavior: none;
-    -webkit-text-size-adjust:100%;
-    touch-action: pan-y;
+    -webkit-text-size-adjust: 100%;
     position: fixed;
     inset: 0;
     transition: background 0.3s, color 0.3s;
+  }
+
+  /* পুরো লেআউট flex Column-এ সাজানো */
+  #app-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    height: calc(var(--app-height, 100vh));
   }
 
   header { 
@@ -60,6 +60,7 @@
     position:relative; 
     background: var(--bg-color);
     border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0; /* হেডার ছোট হবে না */
   }
   header h1 { font-size:20px; margin:0; color: var(--gold); }
   
@@ -74,12 +75,12 @@
   }
   .lang-select option { background: var(--panel-color); color: var(--text-color); }
 
-  /* কন্টেন্ট এরিয়া স্ক্রল হবে */
+  /* স্ক্রল কন্টেইনার - শুধু এটাই স্ক্রল হবে */
   #scroll-container {
-    height: 100vh;
+    flex: 1; /* বাকি জায়গা নেবে */
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 80px;
+    padding-bottom: 80px; /* বটম নেভের জন্য জায়গা */
   }
 
   .balance-card {
@@ -126,6 +127,7 @@
     padding: 10px 0 calc(10px + env(safe-area-inset-bottom)) 0;
     border-top:1px solid var(--border-color);
     z-index: 999;
+    flex-shrink: 0;
     transition: background 0.3s;
   }
   .bottom-nav a { text-decoration:none; }
@@ -143,62 +145,63 @@
 </head>
 <body>
 
-<header>
-  <h1 data-i18n="profile">Profile</h1>
-  <div class="header-controls">
-    <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
-      <span id="theme-icon">🌙</span>
-    </button>
-    <select class="lang-select" id="langSelect" onchange="changeLanguage(this.value)">
-      <option value="en">EN</option>
-      <option value="bn">BN</option>
-      <option value="hi">HI</option>
-      <option value="zh">ZH</option>
-      <option value="es">ES</option>
-      <option value="ar">AR</option>
-      <option value="fr">FR</option>
-      <option value="pt">PT</option>
-      <option value="ru">RU</option>
-      <option value="ja">JA</option>
-    </select>
-  </div>
-</header>
+<div id="app-layout">
+  <header>
+    <h1 data-i18n="profile">Profile</h1>
+    <div class="header-controls">
+      <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
+        <span id="theme-icon">🌙</span>
+      </button>
+      <select class="lang-select" id="langSelect" onchange="changeLanguage(this.value)">
+        <option value="en">EN</option>
+        <option value="bn">BN</option>
+        <option value="hi">HI</option>
+        <option value="zh">ZH</option>
+        <option value="es">ES</option>
+        <option value="ar">AR</option>
+        <option value="fr">FR</option>
+        <option value="pt">PT</option>
+        <option value="ru">RU</option>
+        <option value="ja">JA</option>
+      </select>
+    </div>
+  </header>
 
-<div id="scroll-container">
-  <div class="balance-card">
-    <div class="balance-title">
-      <span data-i18n="est_total_value">Est. Total Value</span>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
-        <circle cx="12" cy="12" r="3"/>
-      </svg>
+  <div id="scroll-container">
+    <div class="balance-card">
+      <div class="balance-title">
+        <span data-i18n="est_total_value">Est. Total Value</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </div>
+      <div class="balance-amount">
+        <span class="num" id="balanceNum">0.00</span>
+        <span class="cur">USDT &#9662;</span>
+      </div>
+      <div class="balance-usd" id="balanceUsd">&#8776; $0.00</div>
+      <div class="balance-actions">
+        <button class="btn-primary" onclick="location.href='deposit.html'" data-i18n="deposit">Deposit</button>
+        <button class="btn-secondary" onclick="location.href='withdraw.html'" data-i18n="withdraw">Withdraw</button>
+      </div>
     </div>
-    <div class="balance-amount">
-      <span class="num" id="balanceNum">0.00</span>
-      <span class="cur">USDT &#9662;</span>
+
+    <div class="card" id="profile-card">
+      <div class="row"><span class="label">Loading...</span></div>
     </div>
-    <div class="balance-usd" id="balanceUsd">&#8776; $0.00</div>
-    <div class="balance-actions">
-      <button class="btn-primary" onclick="location.href='deposit.html'" data-i18n="deposit">Deposit</button>
-      <button class="btn-secondary" onclick="location.href='withdraw.html'" data-i18n="withdraw">Withdraw</button>
-    </div>
+    
+    <button class="logout-btn" onclick="logOut()" data-i18n="logout">Log Out</button>
   </div>
 
-  <div class="card" id="profile-card">
-    <div class="row"><span class="label">Loading...</span></div>
+  <div class="bottom-nav">
+    <a href="market.html"><div><div class="ic">&#128200;</div><span data-i18n="market">Market</span></div></a>
+    <a href="trade.html"><div><div class="ic">&#128179;</div><span data-i18n="trade">Trade</span></div></a>
+    <a href="assets.html"><div><div class="ic">&#128188;</div><span data-i18n="assets">Assets</span></div></a>
+    <div class="active"><div class="ic">&#128100;</div><span data-i18n="profile">Profile</span></div>
   </div>
-  
-  <button class="logout-btn" onclick="logOut()" data-i18n="logout">Log Out</button>
 </div>
 
-<div class="bottom-nav">
-  <a href="market.html"><div><div class="ic">&#128200;</div><span data-i18n="market">Market</span></div></a>
-  <a href="trade.html"><div><div class="ic">&#128179;</div><span data-i18n="trade">Trade</span></div></a>
-  <a href="assets.html"><div><div class="ic">&#128188;</div><span data-i18n="assets">Assets</span></div></a>
-  <div class="active"><div class="ic">&#128100;</div><span data-i18n="profile">Profile</span></div>
-</div>
-
-<!-- ★★★ lang-theme.js যুক্ত করা হলো ★★★ -->
 <script src="lang-theme.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -243,7 +246,6 @@ function logOut() {
       <div class="row"><span class="label" data-i18n="account_id">Account ID</span><span class="value">${cached.accountId}</span></div>
       <div class="row"><span class="label" data-i18n="joined">Joined</span><span class="value">${cached.createdAtStr}</span></div>
     `;
-    // ক্যাশ লোড হওয়ার পর অনুবাদ অ্যাপ্লাই করা
     if (typeof changeLanguage === 'function') {
       changeLanguage(localStorage.getItem('appLang') || 'en');
     }
@@ -256,7 +258,6 @@ firebase.auth().onAuthStateChanged(async user => {
     return;
   }
 
-  // ---- Real-time balance listener ----
   firebase.firestore().collection('users').doc(user.uid)
     .onSnapshot(doc => {
       if (doc.exists) {
@@ -272,7 +273,6 @@ firebase.auth().onAuthStateChanged(async user => {
         } catch (e) {}
       }
     });
-  // -------------------------------------
 
   const card = document.getElementById('profile-card');
   let fullName = '-';
@@ -299,7 +299,6 @@ firebase.auth().onAuthStateChanged(async user => {
     <div class="row"><span class="label" data-i18n="joined">Joined</span><span class="value">${createdAtStr}</span></div>
   `;
 
-  // নতুন কন্টেন্টে অনুবাদ অ্যাপ্লাই করা
   if (typeof changeLanguage === 'function') {
     changeLanguage(localStorage.getItem('appLang') || 'en');
   }
