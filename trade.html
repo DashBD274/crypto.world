@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Trade - ABC Company</title>
+<!-- Lightweight Charts লাইব্রেরি -->
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 <style>
   :root {
     --bg-color: #0b0e11;
@@ -32,18 +34,15 @@
   }
 
   * { box-sizing:border-box; }
-  html { 
-    overflow-x: hidden; 
-    width: 100%; 
-    height: 100%;
-  }
+  html { overflow-x: hidden; width: 100%; height: 100%; }
   
   body { 
     margin:0; font-family:Arial, sans-serif; 
     background: var(--bg-color); color: var(--text-color); 
     padding-bottom: calc(70px + env(safe-area-inset-bottom)); 
     width:100%; height: 100vh;
-    overflow: hidden; /* মোবাইলে স্ক্রল বন্ধ */
+    overflow-y: auto;
+    overflow-x: hidden;
     overscroll-behavior: none;
     -webkit-text-size-adjust:100%;
     touch-action: pan-y;
@@ -52,13 +51,13 @@
     transition: background 0.3s, color 0.3s;
   }
   
-  /* Header */
   header { 
     display:flex; align-items:center; justify-content:center; 
     padding: calc(16px + env(safe-area-inset-top)) 20px 16px; 
     position:relative; 
     background: var(--bg-color);
     border-bottom: 1px solid var(--border-color);
+    z-index: 1000;
   }
   header h1 { font-size:20px; margin:0; color: var(--gold); }
   .back-btn {
@@ -76,18 +75,16 @@
   }
   .lang-select option { background: var(--panel-color); color: var(--text-color); }
 
-  /* কন্টেন্ট এরিয়া স্ক্রল হবে */
-  #scroll-container {
-    height: 100vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 80px;
+  .main-content {
+    padding-top: 20px;
+    padding-bottom: 90px;
+    padding-left: 16px;
+    padding-right: 16px;
   }
 
-  /* Coin List View */
   #coin-list-view .coin-row {
     display:flex; align-items:center; justify-content:space-between;
-    padding:14px 16px; border-bottom:1px solid var(--border-color); cursor:pointer;
+    padding:14px 0; border-bottom:1px solid var(--border-color); cursor:pointer;
   }
   #coin-list-view .coin-row:active { background: var(--panel-hover); }
   .coin-left { display:flex; align-items:center; gap:10px; }
@@ -99,8 +96,7 @@
   .change-up { color: var(--green); }
   .change-down { color: var(--red); }
 
-  /* Chart View */
-  #chart-view { display:none; padding:16px; }
+  #chart-view { display:none; }
 
   .chart-header { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
   .chart-header img { width:26px; height:26px; border-radius:50%; }
@@ -119,19 +115,16 @@
     font-size: 13px;
   }
 
-  /* Canvas Responsive Fix */
-  canvas#candles, canvas#volume { 
-    width: 100% !important; 
-    max-width: 100%; 
-    height: auto !important; 
-    display: block; 
+  #chart-container {
+    width: 100%;
+    height: 250px;
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
   }
-  canvas#candles { height: 190px !important; }
-  canvas#volume { height: 45px !important; margin-top:4px; }
-  
+
   .time-labels { display:flex; justify-content:space-between; font-size:11px; color: var(--text-dim); margin-top:4px; }
 
-  /* Duration Boxes */
   .duration-row { 
     display: grid; 
     grid-template-columns: repeat(5, 1fr); 
@@ -147,7 +140,6 @@
   .duration-time { font-size:15px; font-weight:bold; color: var(--gold); }
   .duration-return { font-size:9px; color: var(--text-dim); margin-top:4px; line-height:1.3; }
 
-  /* Animations */
   .chart-visual {
     max-height:500px; opacity:1; overflow:hidden;
     transition:max-height 0.45s ease, opacity 0.35s ease, margin-top 0.45s ease;
@@ -161,7 +153,6 @@
   }
   .invest-section.show { max-height:600px; opacity:1; transform:translateY(0); }
 
-  /* Amount Input */
   .amount-box { display:flex; align-items:center; gap:8px; }
   .amount-box input {
     flex:1; min-width:0; width:100%;
@@ -190,7 +181,6 @@
     margin-top:8px; background:rgba(240,185,11,0.08);
   }
 
-  /* Trade Buttons */
   .direction-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px; }
   .down-btn, .up-btn {
     padding:14px; border-radius:8px; font-weight:bold; font-size:15px; cursor:pointer;
@@ -199,7 +189,6 @@
   .up-btn { background:rgba(14,203,129,0.12); border:1px solid var(--green); color: var(--green); }
   .down-btn:disabled, .up-btn:disabled { opacity:0.4; cursor:not-allowed; }
 
-  /* Bottom Nav */
   .bottom-nav {
     position:fixed; bottom:0; left:0; right:0; background: var(--panel-color);
     display:flex; justify-content:space-around; 
@@ -302,7 +291,6 @@
 <header>
   <button class="back-btn" id="back-btn" style="display:none;">&#8592;</button>
   <h1 id="page-title" data-i18n="smart_trading">Smart Trading</h1>
-  
   <div class="header-controls">
     <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
       <span id="theme-icon">🌙</span>
@@ -322,7 +310,7 @@
   </div>
 </header>
 
-<div id="scroll-container">
+<div class="main-content">
   <!-- Coin List View -->
   <div id="coin-list-view">
     <div class="welcome-loading">
@@ -363,8 +351,8 @@
           <div>Low: <span class="val" id="ohlc-low">-</span></div>
           <div>Close: <span class="val" id="ohlc-close">-</span></div>
         </div>
-        <canvas id="candles" width="700" height="190"></canvas>
-        <canvas id="volume" width="700" height="45"></canvas>
+        <!-- Lightweight Chart Container -->
+        <div id="chart-container"></div>
         <div class="time-labels" id="time-labels"></div>
       </div>
 
@@ -390,7 +378,6 @@
   </div>
 </div>
 
-<!-- Bottom Nav -->
 <div class="bottom-nav">
   <a href="market.html"><div><div class="ic">&#128200;</div><span data-i18n="market">Market</span></div></a>
   <div class="active"><div class="ic">&#128179;</div><span data-i18n="trade">Trade</span></div>
@@ -398,7 +385,6 @@
   <a href="profile.html"><div><div class="ic">&#128100;</div><span data-i18n="profile">Profile</span></div></a>
 </div>
 
-<!-- Trade Popup -->
 <div class="tm-overlay" id="trade-modal-overlay">
   <div class="tm-card">
     <div class="tm-title" id="tm-title">ethusdt</div>
@@ -416,10 +402,8 @@
   </div>
 </div>
 
-<!-- ★★★ lang-theme.js যুক্ত করা হলো ★★★ -->
 <script src="lang-theme.js"></script>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -615,6 +599,11 @@ let refreshTimer = null;
 let priceRefreshTimer = null;
 let tradeInProgress = false;
 
+// Lightweight chart variables
+let chart = null;
+let candleSeries = null;
+let volumeSeries = null;
+
 function iconUrl(icon) {
   return 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/' + icon + '.png';
 }
@@ -695,6 +684,74 @@ async function refreshCoinPrices() {
   } catch (err) {}
 }
 
+function createChart() {
+  const container = document.getElementById('chart-container');
+  container.innerHTML = '';
+
+  chart = LightweightCharts.createChart(container, {
+    width: container.clientWidth,
+    height: container.clientHeight,
+    layout: {
+      background: { color: 'transparent' },
+      textColor: '#848e9c',
+    },
+    grid: {
+      vertLines: { color: 'rgba(42, 46, 57, 0.3)' },
+      horzLines: { color: 'rgba(42, 46, 57, 0.3)' },
+    },
+    crosshair: {
+      mode: LightweightCharts.CrosshairMode.Normal,
+    },
+    rightPriceScale: {
+      borderColor: '#2b3139',
+    },
+    timeScale: {
+      borderColor: '#2b3139',
+      timeVisible: true,
+      secondsVisible: false,
+    },
+    handleScroll: {
+      mouseWheel: true,
+      pressedMouseMove: true,
+      horzTouchDrag: true,
+      vertTouchDrag: false,
+    },
+    handleScale: {
+      axisPressedMouseMove: true,
+      mouseWheel: true,
+      pinch: true,
+    },
+  });
+
+  candleSeries = chart.addCandlestickSeries({
+    upColor: '#0ecb81',
+    downColor: '#f6465d',
+    borderDownColor: '#f6465d',
+    borderUpColor: '#0ecb81',
+    wickDownColor: '#f6465d',
+    wickUpColor: '#0ecb81',
+  });
+
+  volumeSeries = chart.addHistogramSeries({
+    color: '#26a69a',
+    priceFormat: {
+      type: 'volume',
+    },
+    priceScaleId: '',
+    scaleMargins: {
+      top: 0.8,
+      bottom: 0,
+    },
+  });
+
+  const resizeObserver = new ResizeObserver(entries => {
+    for (let entry of entries) {
+      chart.applyOptions({ width: entry.contentRect.width });
+    }
+  });
+  resizeObserver.observe(container);
+}
+
 function openChart(coin) {
   currentSymbol = coin;
   listView.style.display = 'none';
@@ -709,9 +766,14 @@ function openChart(coin) {
   document.getElementById('chart-visual').classList.remove('collapsed');
   selectedDuration = null;
 
+  if (!chart) {
+    createChart();
+  }
+
   loadChart();
   clearInterval(refreshTimer);
-  refreshTimer = setInterval(loadChart, 3000);
+  // ★★★ এখানে ১০০০ মিলিসেকেন্ড (১ সেকেন্ড) করা হয়েছে ★★★
+  refreshTimer = setInterval(loadChart, 1000); 
 }
 
 backBtn.addEventListener('click', () => {
@@ -723,85 +785,23 @@ backBtn.addEventListener('click', () => {
 });
 
 intervalSelect.addEventListener('change', () => {
-  if (currentSymbol) loadChart();
+  if (currentSymbol) {
+    if (chart) {
+      chart.remove();
+      chart = null;
+      candleSeries = null;
+      volumeSeries = null;
+    }
+    createChart();
+    loadChart();
+  }
 });
 
-function drawCandles(canvas, klines) {
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width, h = canvas.height;
-  ctx.clearRect(0,0,w,h);
-
-  const style = getComputedStyle(document.documentElement);
-  const green = style.getPropertyValue('--green').trim();
-  const red = style.getPropertyValue('--red').trim();
-
-  const highs = klines.map(k => parseFloat(k[2]));
-  const lows = klines.map(k => parseFloat(k[3]));
-  const max = Math.max(...highs);
-  const min = Math.min(...lows);
-  const range = (max - min) || 1;
-  const candleWidth = w / klines.length;
-
-  klines.forEach((k, i) => {
-    const open = parseFloat(k[1]);
-    const high = parseFloat(k[2]);
-    const low = parseFloat(k[3]);
-    const close = parseFloat(k[4]);
-    const up = close >= open;
-    const color = up ? green : red;
-    const x = i * candleWidth + candleWidth/2;
-
-    const yHigh = h - ((high - min)/range) * h;
-    const yLow = h - ((low - min)/range) * h;
-    const yOpen = h - ((open - min)/range) * h;
-    const yClose = h - ((close - min)/range) * h;
-
-    ctx.strokeStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(x, yHigh);
-    ctx.lineTo(x, yLow);
-    ctx.stroke();
-
-    ctx.fillStyle = color;
-    const bodyTop = Math.min(yOpen, yClose);
-    const bodyHeight = Math.max(Math.abs(yClose - yOpen), 1);
-    ctx.fillRect(x - candleWidth*0.35, bodyTop, candleWidth*0.7, bodyHeight);
-  });
-}
-
-function drawVolume(canvas, klines) {
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width, h = canvas.height;
-  ctx.clearRect(0,0,w,h);
-
-  const style = getComputedStyle(document.documentElement);
-  const green = style.getPropertyValue('--green').trim();
-  const red = style.getPropertyValue('--red').trim();
-
-  const volumes = klines.map(k => parseFloat(k[5]));
-  const maxVol = Math.max(...volumes) || 1;
-  const barWidth = w / klines.length;
-
-  klines.forEach((k, i) => {
-    const open = parseFloat(k[1]);
-    const close = parseFloat(k[4]);
-    const up = close >= open;
-    const vol = parseFloat(k[5]);
-    const barHeight = (vol / maxVol) * h;
-    const x = i * barWidth;
-    // opacity এর জন্য rgba ব্যবহার না করে গ্লোবাল আলফা সেট করা
-    ctx.globalAlpha = 0.6;
-    ctx.fillStyle = up ? green : red;
-    ctx.fillRect(x + barWidth*0.15, h - barHeight, barWidth*0.7, barHeight);
-    ctx.globalAlpha = 1.0;
-  });
-}
-
 async function loadChart() {
-  if (!currentSymbol) return;
+  if (!currentSymbol || !chart || !candleSeries) return;
   try {
     const interval = intervalSelect.value;
-    const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentSymbol.symbol}&interval=${interval}&limit=48`);
+    const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentSymbol.symbol}&interval=${interval}&limit=100`);
     const klines = await res.json();
     if (!klines || klines.length === 0) return;
 
@@ -817,8 +817,22 @@ async function loadChart() {
       }
     } catch (e) {}
 
-    drawCandles(document.getElementById('candles'), klines);
-    drawVolume(document.getElementById('volume'), klines);
+    const candleData = klines.map(k => ({
+      time: Math.floor(k[0] / 1000),
+      open: parseFloat(k[1]),
+      high: parseFloat(k[2]),
+      low: parseFloat(k[3]),
+      close: parseFloat(k[4]),
+    }));
+
+    const volumeData = klines.map(k => ({
+      time: Math.floor(k[0] / 1000),
+      value: parseFloat(k[5]),
+      color: parseFloat(k[4]) >= parseFloat(k[1]) ? 'rgba(14, 203, 129, 0.5)' : 'rgba(246, 70, 93, 0.5)',
+    }));
+
+    candleSeries.setData(candleData);
+    volumeSeries.setData(volumeData);
 
     const last = klines[klines.length - 1];
     const first = klines[0];
