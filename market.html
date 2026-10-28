@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Market - ABC Company</title>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 <style>
   :root {
     --bg-color: #0b0e11;
@@ -32,19 +33,15 @@
   }
 
   * { box-sizing:border-box; }
-  html { 
-    overflow-x: hidden; 
-    width: 100%; 
-    height: 100%;
-  }
+  html { overflow-x: hidden; width: 100%; height: 100%; }
   
-  body {
+  body { 
     margin:0; font-family:Arial, sans-serif; 
     background: var(--bg-color); color: var(--text-color); 
-    padding-bottom: calc(70px + env(safe-area-inset-bottom));
+    padding-bottom: calc(70px + env(safe-area-inset-bottom)); 
     width:100%; height: 100vh;
-    /* মোবাইলে স্ক্রল ও জুম বন্ধ করতে */
-    overflow: hidden; 
+    overflow-y: auto;
+    overflow-x: hidden;
     overscroll-behavior: none;
     -webkit-text-size-adjust:100%;
     touch-action: pan-y;
@@ -53,15 +50,9 @@
     transition: background 0.3s, color 0.3s;
   }
 
-  /* --- Sticky Top Fix --- */
   #sticky-top { 
-    position: fixed; 
-    top: 0; 
-    left: 0; 
-    right: 0; 
-    z-index: 1000; 
+    position:fixed; top:0; left:0; right:0; z-index:1000; 
     background: var(--bg-color); 
-    /* আইফোন ও অ্যান্ড্রয়েডের স্ট্যাটাস বার এড়াতে উপরে স্পেস */
     padding-top: calc(16px + env(safe-area-inset-top)); 
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
@@ -71,27 +62,28 @@
   header { 
     display:flex; align-items:center; justify-content:space-between; 
     padding: 0 20px 16px 20px; 
-    flex-wrap: wrap; /* ছোট স্ক্রিনে বাটন ভেঙে যাওয়া রোধ করতে */
-    gap: 10px;
   }
   header h1 { font-size:20px; margin:0; }
+  .icons { display:flex; align-items:center; gap:10px; }
   
-  .icons { 
-    display:flex; align-items:center; gap:8px; 
-    flex-wrap: wrap; /* আইকনগুলো যাতে বাইরে চলে না যায় */
-  }
-  
-  .icon-btn, .lang-select {
+  .icon-btn {
     background: transparent; border: 1px solid var(--border-color);
-    color: var(--text-color); border-radius: 6px; padding: 6px 8px;
-    cursor: pointer; font-size: 13px; outline: none;
+    color: var(--text-color); border-radius: 6px; padding: 6px 10px;
+    cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 5px;
+  }
+  .icon-btn:hover { background: var(--panel-hover); }
+  
+  .lang-select {
+    background: transparent; border: 1px solid var(--border-color);
+    color: var(--text-color); border-radius: 6px; padding: 6px;
+    cursor: pointer; font-size: 14px; outline: none;
   }
   .lang-select option { background: var(--panel-color); color: var(--text-color); }
 
   .deposit-btn {
     background: var(--gold); color: var(--btn-text); border:none;
-    padding:8px 12px; border-radius:8px; font-weight:bold;
-    font-size:12px; cursor:pointer; text-decoration:none;
+    padding:8px 16px; border-radius:8px; font-weight:bold;
+    font-size:13px; cursor:pointer; text-decoration:none;
     display:inline-block;
   }
   
@@ -101,20 +93,10 @@
   }
   .tabs button {
     background: var(--panel-hover); border:1px solid var(--border-color); color: var(--text-dim);
-    padding:6px 12px; border-radius:20px; white-space:nowrap; cursor:pointer;
-    font-size: 13px;
+    padding:8px 16px; border-radius:20px; white-space:nowrap; cursor:pointer;
   }
   .tabs button.active { background: var(--gold); color: var(--btn-text); border-color: var(--gold); font-weight:bold; }
   
-  /* কন্টেন্ট এরিয়া স্ক্রল হবে */
-  #page-content {
-    height: 100vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-top: 100px; /* হেডারের উচ্চতা অনুযায়ী জাভাস্ক্রিপ্ট এটি ঠিক করবে */
-    padding-bottom: 80px;
-  }
-
   .highlight-row { 
     display:flex; gap:12px; padding:16px 20px 16px; 
     overflow-x:auto; -webkit-overflow-scrolling:touch; 
@@ -130,7 +112,7 @@
   th:last-child, td:last-child { text-align:right; }
   td { padding:10px 20px; border-top:1px solid var(--border-color); overflow:hidden; }
   
-  .coin-name { display:flex; align-items:center; gap:8px; font-weight:bold; min-width:0; }
+  .coin-name { display:flex; align-items:center; gap:8px; font-weight:bold; min-width:0; cursor:pointer; }
   .coin-name img { width:24px; height:24px; border-radius:4px; flex-shrink:0; }
   .coin-name > div { min-width:0; overflow:hidden; text-overflow:ellipsis; }
   .coin-sub { color: var(--text-dim); font-size:12px; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -142,10 +124,8 @@
   .bottom-nav {
     position:fixed; bottom:0; left:0; right:0; background: var(--panel-color);
     display:flex; justify-content:space-around; 
-    padding: 10px 0 calc(10px + env(safe-area-inset-bottom)) 0; 
+    padding: 10px 0 calc(10px + env(safe-area-inset-bottom)) 0;
     border-top:1px solid var(--border-color);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
     z-index: 999;
     transition: background 0.3s;
   }
@@ -202,6 +182,61 @@
     background: var(--gold); color: var(--btn-text); font-weight:bold;
     border-radius:8px; margin:8px 8px 4px; width:calc(100% - 16px);
   }
+
+  /* ★★★ চার্ট পপআপ (Modal) ★★★ */
+  #chart-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--bg-color);
+    z-index: 9999;
+    flex-direction: column;
+    padding: calc(10px + env(safe-area-inset-top)) 16px 16px;
+  }
+  #chart-modal.active { display: flex; }
+  
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .modal-header .coin-info {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 18px; font-weight: bold;
+  }
+  .modal-header .coin-info img { width: 28px; height: 28px; border-radius: 50%; }
+  .close-modal-btn {
+    background: var(--panel-hover); border: none; color: var(--text-color);
+    width: 36px; height: 36px; border-radius: 50%; font-size: 20px; cursor: pointer;
+  }
+
+  .modal-chart-container {
+    flex: 1;
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--panel-color);
+  }
+  
+  .modal-chart-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 12px;
+    background: var(--panel-color);
+    border-bottom: 1px solid var(--border-color);
+  }
+  .modal-chart-header .price { font-size: 22px; font-weight: bold; }
+  .modal-chart-header .change { font-size: 14px; }
+  .modal-chart-header .timeframe-select {
+    background: var(--panel-hover); color: var(--text-color);
+    border: 1px solid var(--border-color); border-radius: 6px;
+    padding: 6px 10px; outline: none; font-size: 13px;
+  }
+  
+  #modal-chart-container {
+    width: 100%;
+    height: calc(100% - 50px);
+  }
 </style>
 </head>
 <body>
@@ -227,9 +262,8 @@
       </select>
 
       <a href="deposit.html" class="deposit-btn" data-i18n="deposit">Deposit</a>
-      
       <div class="icon-wrap" id="support-wrap">
-        <div class="support-icon-btn" id="support-icon">&#127911;</div>
+        <div class="support-icon-btn" id="support-icon" aria-label="Support" role="button">&#127911;</div>
         <div class="support-menu" id="support-menu">
           <a href="live-support.html" class="live-support-item">
             <span class="menu-ic"><svg viewBox="0 0 512 512" fill="currentColor"><path d="M256 48C141.1 48 48 141.1 48 256v40c0 13.3-10.7 24-24 24s-24-10.7-24-24V256C0 114.6 114.6 0 256 0S512 114.6 512 256v144.1c0 46.9-38.2 84.9-85.1 84.9H384c0 26.5-21.5 48-48 48H288c-26.5 0-48-21.5-48-48V432c0-26.5 21.5-48 48-48h48c23.7 0 43.9 17.2 47.6 40h17.2c21.3 0 38.7-17.2 38.7-38.9V256c0-114.9-93.1-208-208-208zM144 208h16c17.7 0 32 14.3 32 32V352c0 17.7-14.3 32-32 32H144c-35.3 0-64-28.7-64-64V272c0-35.3 28.7-64 64-64zm224 0c35.3 0 64 28.7 64 64v48c0 35.3-28.7 64-64 64H352c-17.7 0-32-14.3-32-32V240c0-17.7 14.3-32-32-32h16z"/></svg></span> <span data-i18n="live_support">Live Support</span>
@@ -260,7 +294,7 @@
   </div>
 </div>
 
-<div id="page-content">
+<div id="page-content" style="padding-top: 120px;">
   <div class="highlight-row" id="highlight-row"></div>
 
   <table>
@@ -284,6 +318,36 @@
   <a href="profile.html"><div><div class="ic">&#128100;</div><span data-i18n="profile">Profile</span></div></a>
 </div>
 
+<!-- ★★★ চার্ট পপআপ (Modal) ★★★ -->
+<div id="chart-modal">
+  <div class="modal-header">
+    <div class="coin-info">
+      <img id="modal-coin-icon" src="" alt="">
+      <span id="modal-coin-name">BTC/USDT</span>
+    </div>
+    <button class="close-modal-btn" id="close-modal-btn">×</button>
+  </div>
+  
+  <div class="modal-chart-container">
+    <div class="modal-chart-header">
+      <div>
+        <div class="price" id="modal-price">-</div>
+        <div class="change" id="modal-change">-</div>
+      </div>
+      <select class="timeframe-select" id="modal-timeframe">
+        <option value="1m">1m</option>
+        <option value="5m">5m</option>
+        <option value="15m" selected>15m</option>
+        <option value="1h">1h</option>
+        <option value="4h">4h</option>
+        <option value="1d">1d</option>
+      </select>
+    </div>
+    <div id="modal-chart-container"></div>
+    <div id="tradingview-widget-container" style="display:none; width:100%; height:calc(100% - 50px);"></div>
+  </div>
+</div>
+
 <script src="lang-theme.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -292,7 +356,6 @@
 <script>
 let currentTab = 'crypto';
 
-// হেডারের উচ্চতা অনুযায়ী কন্টেন্ট এরিয়ার প্যাডিং ঠিক করা
 function adjustHeaderOffset(){
   const stickyTop = document.getElementById('sticky-top');
   const pageContent = document.getElementById('page-content');
@@ -319,7 +382,6 @@ document.querySelectorAll('.tabs button').forEach(btn => {
   });
 });
 
-// Support menu
 const supportIcon = document.getElementById('support-icon');
 const supportMenu = document.getElementById('support-menu');
 supportIcon.addEventListener('click', (e) => {
@@ -359,7 +421,27 @@ const coinList = [
   { symbol: 'VET', name: 'VeChain', short: 'VET' },
   { symbol: 'SAND', name: 'The Sandbox', short: 'SAND' },
   { symbol: 'MANA', name: 'Decentraland', short: 'MANA' },
-  { symbol: 'HBAR', name: 'Hedera', short: 'HBAR' }
+  { symbol: 'HBAR', name: 'Hedera', short: 'HBAR' },
+  { symbol: 'AAVE', name: 'Aave', short: 'AAVE' },
+  { symbol: 'MKR', name: 'Maker', short: 'MKR' },
+  { symbol: 'GRT', name: 'The Graph', short: 'GRT' },
+  { symbol: 'SNX', name: 'Synthetix', short: 'SNX' },
+  { symbol: 'CRV', name: 'Curve DAO', short: 'CRV' },
+  { symbol: 'COMP', name: 'Compound', short: 'COMP' },
+  { symbol: 'SUSHI', name: 'SushiSwap', short: 'SUSHI' },
+  { symbol: 'YFI', name: 'yearn.finance', short: 'YFI' },
+  { symbol: 'ZEC', name: 'Zcash', short: 'ZEC' },
+  { symbol: 'DASH', name: 'Dash', short: 'DASH' },
+  { symbol: 'XMR', name: 'Monero', short: 'XMR' },
+  { symbol: 'EOS', name: 'EOS', short: 'EOS' },
+  { symbol: 'ETC', name: 'Ethereum Classic', short: 'ETC' },
+  { symbol: 'THETA', name: 'Theta Network', short: 'THETA' },
+  { symbol: 'FTM', name: 'Fantom', short: 'FTM' },
+  { symbol: 'EGLD', name: 'MultiversX', short: 'EGLD' },
+  { symbol: 'FLOW', name: 'Flow', short: 'FLOW' },
+  { symbol: 'CHZ', name: 'Chiliz', short: 'CHZ' },
+  { symbol: 'ENJ', name: 'Enjin Coin', short: 'ENJ' },
+  { symbol: 'BAT', name: 'Basic Attention Token', short: 'BAT' }
 ];
 
 let marketDataCache = [];
@@ -433,7 +515,7 @@ function renderMarket() {
     row.dataset.symbol = coin.symbol;
     row.innerHTML = `
       <td>
-        <div class="coin-name">
+        <div class="coin-name" onclick="openChartModal('${coin.symbol}', '${coin.short}', '${iconUrl}', 'crypto')">
           <img src="${iconUrl}" onerror="this.style.visibility='hidden'">
           <div>${coin.short}/USDT<div class="coin-sub">${coin.name}</div></div>
         </div>
@@ -479,6 +561,9 @@ function simulateMarketUpdate() {
   });
 }
 
+// ==========================================
+// ★★★ Forex এবং Stocks-এর ডেটা ★★★
+// ==========================================
 const forexList = [
   { pair: 'EUR/USD', flag: '🇪🇺', base: 'EUR', quote: 'USD' },
   { pair: 'USD/HKD', flag: '🇺🇸', base: 'USD', quote: 'HKD' },
@@ -563,7 +648,7 @@ async function loadForex() {
     const row = document.createElement('tr');
     row.innerHTML = `
       <td>
-        <div class="coin-name">
+        <div class="coin-name" onclick="openChartModal('${fx.pair}', '${fx.pair}', '', 'forex')">
           <span style="font-size:20px;">${fx.flag}</span>
           <div>${fx.pair}<div class="coin-sub">${fx.base}/${fx.quote}</div></div>
         </div>
@@ -659,7 +744,7 @@ async function loadStocks() {
     const row = document.createElement('tr');
     row.innerHTML = `
       <td>
-        <div class="coin-name">
+        <div class="coin-name" onclick="openChartModal('${s.symbol}', '${s.symbol}', '${logoUrl}', 'stocks')">
           <img src="${logoUrl}" onerror="this.style.visibility='hidden'">
           <div>${s.symbol}<div class="coin-sub">${s.name}</div></div>
         </div>
@@ -682,61 +767,256 @@ async function loadStocks() {
   }
 }
 
+// ==========================================
+// ★★★ চার্ট পপআপ ফাংশন ★★★
+// ==========================================
+let modalChart = null;
+let modalCandleSeries = null;
+let modalVolumeSeries = null;
+let modalCurrentSymbol = null;
+let modalInterval = '15m';
+let modalRefreshTimer = null;
+let modalSourceType = 'crypto';
+
+function openChartModal(symbol, short, icon, type) {
+  modalCurrentSymbol = symbol;
+  modalSourceType = type;
+
+  if (type === 'crypto') {
+    // Binance API-এর জন্য symbol ফরম্যাট
+    let binanceSymbol = symbol + 'USDT';
+    if (symbol === 'MATIC') binanceSymbol = 'MATICUSDT';
+    else if (symbol === 'SHIB') binanceSymbol = 'SHIBUSDT';
+    else if (symbol === 'DOT') binanceSymbol = 'DOTUSDT';
+    else if (symbol === 'FTM') binanceSymbol = 'FTMUSDT';
+    else binanceSymbol = symbol + 'USDT';
+    modalCurrentSymbol = binanceSymbol;
+  }
+
+  document.getElementById('modal-coin-icon').src = icon;
+  document.getElementById('modal-coin-name').textContent = short + (type === 'crypto' ? '/USDT' : '');
+  
+  const modal = document.getElementById('chart-modal');
+  modal.classList.add('active');
+  
+  // চার্ট কন্টেইনার সেটআপ
+  const container = document.getElementById('modal-chart-container');
+  const tvContainer = document.getElementById('tradingview-widget-container');
+
+  if (type === 'crypto') {
+    // Lightweight Charts সেটআপ
+    container.style.display = 'block';
+    tvContainer.style.display = 'none';
+    container.innerHTML = '';
+    if (modalChart) {
+      modalChart.remove();
+      modalChart = null;
+    }
+    
+    modalChart = LightweightCharts.createChart(container, {
+      width: container.clientWidth,
+      height: container.clientHeight,
+      layout: {
+        background: { color: 'transparent' },
+        textColor: '#848e9c',
+      },
+      grid: {
+        vertLines: { color: 'rgba(42, 46, 57, 0.3)' },
+        horzLines: { color: 'rgba(42, 46, 57, 0.3)' },
+      },
+      crosshair: {
+        mode: LightweightCharts.CrosshairMode.Normal,
+      },
+      rightPriceScale: {
+        borderColor: '#2b3139',
+      },
+      timeScale: {
+        borderColor: '#2b3139',
+        timeVisible: true,
+        secondsVisible: false,
+      },
+      handleScroll: {
+        mouseWheel: true,
+        pressedMouseMove: true,
+        horzTouchDrag: true,
+        vertTouchDrag: false,
+      },
+      handleScale: {
+        axisPressedMouseMove: true,
+        mouseWheel: true,
+        pinch: true,
+      },
+    });
+    
+    modalCandleSeries = modalChart.addCandlestickSeries({
+      upColor: '#0ecb81',
+      downColor: '#f6465d',
+      borderDownColor: '#f6465d',
+      borderUpColor: '#0ecb81',
+      wickDownColor: '#f6465d',
+      wickUpColor: '#0ecb81',
+    });
+    
+    modalVolumeSeries = modalChart.addHistogramSeries({
+      color: '#26a69a',
+      priceFormat: { type: 'volume' },
+      priceScaleId: '',
+      scaleMargins: { top: 0.8, bottom: 0 },
+    });
+    
+    loadModalChart();
+    
+    if (modalRefreshTimer) clearInterval(modalRefreshTimer);
+    modalRefreshTimer = setInterval(loadModalChart, 1000);
+  } else {
+    // Forex, Stocks, Futures-এর জন্য TradingView Widget
+    container.style.display = 'none';
+    tvContainer.style.display = 'block';
+    tvContainer.innerHTML = '';
+
+    let tvSymbol = '';
+    if (type === 'forex') {
+      // TradingView-এর Forex symbol ফরম্যাট
+      tvSymbol = `FX:${symbol.replace('/', '')}`;
+    } else if (type === 'stocks') {
+      // TradingView-এর Stocks symbol ফরম্যাট
+      tvSymbol = `${symbol}`;
+    } else if (type === 'futures') {
+      tvSymbol = `BINANCE:${symbol}USDT.P`;
+    }
+
+    const widget = document.createElement('div');
+    widget.id = 'tv-widget-' + Date.now();
+    widget.style.width = '100%';
+    widget.style.height = '100%';
+    tvContainer.appendChild(widget);
+
+    new TradingView.widget({
+      "autosize": true,
+      "symbol": tvSymbol,
+      "interval": "15",
+      "timezone": "Etc/UTC",
+      "theme": document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark',
+      "style": "1",
+      "locale": "en",
+      "toolbar_bg": "#f1f3f6",
+      "enable_publishing": false,
+      "allow_symbol_change": true,
+      "container_id": widget.id
+    });
+
+    // স্ক্রিপ্ট লোড করা (যদি আগে থেকে না থাকে)
+    if (!document.getElementById('tradingview-widget-script')) {
+      const script = document.createElement('script');
+      script.id = 'tradingview-widget-script';
+      script.src = 'https://s3.tradingview.com/tv.js';
+      script.onload = () => {
+        new TradingView.widget({
+          "autosize": true,
+          "symbol": tvSymbol,
+          "interval": "15",
+          "timezone": "Etc/UTC",
+          "theme": document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark',
+          "style": "1",
+          "locale": "en",
+          "toolbar_bg": "#f1f3f6",
+          "enable_publishing": false,
+          "allow_symbol_change": true,
+          "container_id": widget.id
+        });
+      };
+      document.head.appendChild(script);
+    }
+  }
+}
+
+async function loadModalChart() {
+  if (!modalCurrentSymbol || !modalChart || !modalCandleSeries) return;
+  try {
+    const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${modalCurrentSymbol}&interval=${modalInterval}&limit=100`);
+    const klines = await res.json();
+    if (!klines || klines.length === 0) return;
+    
+    try {
+      const priceRes = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${modalCurrentSymbol}`);
+      const priceData = await priceRes.json();
+      const livePrice = parseFloat(priceData.price);
+      if (!isNaN(livePrice)) {
+        const last = klines[klines.length - 1];
+        last[4] = String(livePrice);
+        if (livePrice > parseFloat(last[2])) last[2] = String(livePrice);
+        if (livePrice < parseFloat(last[3])) last[3] = String(livePrice);
+      }
+    } catch (e) {}
+    
+    const candleData = klines.map(k => ({
+      time: Math.floor(k[0] / 1000),
+      open: parseFloat(k[1]),
+      high: parseFloat(k[2]),
+      low: parseFloat(k[3]),
+      close: parseFloat(k[4]),
+    }));
+    
+    const volumeData = klines.map(k => ({
+      time: Math.floor(k[0] / 1000),
+      value: parseFloat(k[5]),
+      color: parseFloat(k[4]) >= parseFloat(k[1]) ? 'rgba(14, 203, 129, 0.5)' : 'rgba(246, 70, 93, 0.5)',
+    }));
+    
+    modalCandleSeries.setData(candleData);
+    modalVolumeSeries.setData(volumeData);
+    
+    const last = klines[klines.length - 1];
+    const prevClose = parseFloat(klines[klines.length - 2] ? klines[klines.length - 2][4] : klines[0][1]);
+    const closeVal = parseFloat(last[4]);
+    const changePercent = ((closeVal - prevClose) / prevClose) * 100;
+    const up = changePercent >= 0;
+    
+    document.getElementById('modal-price').textContent = closeVal.toLocaleString(undefined, {maximumFractionDigits: 4}) + ' USD';
+    const changeEl = document.getElementById('modal-change');
+    changeEl.textContent = (up ? '+' : '') + changePercent.toFixed(2) + '%';
+    changeEl.className = up ? 'change-up' : 'change-down';
+    
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+document.getElementById('close-modal-btn').addEventListener('click', () => {
+  const modal = document.getElementById('chart-modal');
+  modal.classList.remove('active');
+  if (modalRefreshTimer) clearInterval(modalRefreshTimer);
+  if (modalChart) {
+    modalChart.remove();
+    modalChart = null;
+  }
+});
+
+document.getElementById('modal-timeframe').addEventListener('change', (e) => {
+  modalInterval = e.target.value;
+  if (modalSourceType === 'crypto') {
+    loadModalChart();
+  } else {
+    // TradingView-এর জন্য ইন্টারভাল ম্যাপিং
+    const intervalMap = { '1m': '1', '5m': '5', '15m': '15', '1h': '60', '4h': '240', '1d': 'D' };
+    // পেজ রিলোড করে নতুন ইন্টারভাল সেট করা
+    const currentSymbol = modalCurrentSymbol;
+    const currentType = modalSourceType;
+    document.getElementById('chart-modal').classList.remove('active');
+    setTimeout(() => {
+      openChartModal(currentSymbol.replace('USDT', ''), currentSymbol.replace('USDT', ''), '', currentType);
+    }, 100);
+  }
+});
+
+// ============================================
+
 loadMarket();
 setInterval(loadMarket, 30000);
 setInterval(simulateMarketUpdate, 3000);
-
-setInterval(() => {
-  if (currentTab === 'forex') {
-    loadForex();
-  } else if (currentTab === 'stocks') {
-    loadStocks();
-  }
-}, 60000);
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDJoPr8RvE1xkNTKRr5kwTx6E51GCMn_HE",
-  authDomain: "abc-company-6272a.firebaseapp.com",
-  projectId: "abc-company-6272a",
-  storageBucket: "abc-company-6272a.firebasestorage.app",
-  messagingSenderId: "1026212780106",
-  appId: "1:1026212780106:web:985ec1bc35837d6320eeb3"
-};
-firebase.initializeApp(firebaseConfig);
-
-let pendingDeposits = 0;
-let pendingWithdrawals = 0;
-
-function updateNotifBadge() {
-  const badge = document.getElementById('notif-badge');
-  if (!badge) return;
-  const total = pendingDeposits + pendingWithdrawals;
-  badge.textContent = total;
-  badge.classList.toggle('show', total > 0);
-}
-
-firebase.auth().onAuthStateChanged(user => {
-  if (!user) return;
-
-  const db = firebase.firestore();
-
-  db.collection('deposits')
-    .where('uid', '==', user.uid)
-    .where('status', '==', 'pending')
-    .onSnapshot(snap => {
-      pendingDeposits = snap.size;
-      updateNotifBadge();
-    });
-
-  db.collection('withdrawals')
-    .where('uid', '==', user.uid)
-    .where('status', '==', 'pending')
-    .onSnapshot(snap => {
-      pendingWithdrawals = snap.size;
-      updateNotifBadge();
-    });
-});
 </script>
 
+<!-- TradingView Widget স্ক্রিপ্ট (Forex, Stocks, Futures-এর জন্য) -->
+<script src="https://s3.tradingview.com/tv.js"></script>
 </body>
 </html>
