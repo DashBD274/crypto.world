@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Trade - ABC Company</title>
-<!-- Lightweight Charts লাইব্রেরি -->
 <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 <style>
   :root {
@@ -209,7 +208,6 @@
     box-shadow:0 0 0 6px rgba(240,185,11,0.08);
   }
 
-  /* Trade Result Popup */
   .tm-overlay {
     display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6);
     align-items:center; justify-content:center; z-index:9999; padding:20px;
@@ -226,7 +224,7 @@
     display:flex; align-items:center; justify-content:center;
     margin:0 auto 20px; font-weight:bold; font-size:16px; color: var(--gold);
   }
-  .tm-result { font-size:28px; font-weight:bold; margin-bottom:18px; display:none; }
+  .tm-result { font-size:20px; font-weight:bold; margin-bottom:18px; display:none; line-height:1.4; }
   .tm-rows { text-align:left; margin-bottom:14px; }
   .tm-row {
     display:flex; justify-content:space-between; padding:7px 0;
@@ -242,7 +240,6 @@
   }
   .tm-again-btn:active { background:#d9e4ff; }
 
-  /* Welcome Loading */
   .welcome-loading {
     display:flex; align-items:center; justify-content:center;
     height:60vh; text-align:center; padding:20px;
@@ -311,7 +308,6 @@
 </header>
 
 <div class="main-content">
-  <!-- Coin List View -->
   <div id="coin-list-view">
     <div class="welcome-loading">
       <div class="candle-bg">
@@ -325,7 +321,6 @@
     </div>
   </div>
 
-  <!-- Chart View -->
   <div id="chart-view">
     <div class="chart-header">
       <img id="chart-icon" src="" alt="">
@@ -351,7 +346,6 @@
           <div>Low: <span class="val" id="ohlc-low">-</span></div>
           <div>Close: <span class="val" id="ohlc-close">-</span></div>
         </div>
-        <!-- Lightweight Chart Container -->
         <div id="chart-container"></div>
         <div class="time-labels" id="time-labels"></div>
       </div>
@@ -421,20 +415,6 @@ firebase.initializeApp(firebaseConfig);
 let currentUser = null;
 let currentBalance = 0;
 
-function getBalance() { return currentBalance; }
-
-function updateBalanceDisplay() {
-  const el = document.getElementById('balance-display');
-  if (el) el.textContent = `Est. Total Value: ${currentBalance.toFixed(2)} USDT`;
-}
-
-function setBalance(newVal) {
-  if (!currentUser) return;
-  firebase.firestore().collection('users').doc(currentUser.uid).update({
-    balance: newVal
-  }).catch(err => console.error('Balance update failed:', err));
-}
-
 firebase.auth().onAuthStateChanged(user => {
   if (!user) {
     window.location.href = 'login.html';
@@ -450,6 +430,13 @@ firebase.auth().onAuthStateChanged(user => {
       }
     });
 });
+
+function getBalance() { return currentBalance; }
+
+function updateBalanceDisplay() {
+  const el = document.getElementById('balance-display');
+  if (el) el.textContent = `Est. Total Value: ${currentBalance.toFixed(2)} USDT`;
+}
 
 const coinList = [
   { symbol: 'BTCUSDT', name: 'Bitcoin', short: 'BTC', icon: 'btc' },
@@ -599,7 +586,6 @@ let refreshTimer = null;
 let priceRefreshTimer = null;
 let tradeInProgress = false;
 
-// Lightweight chart variables
 let chart = null;
 let candleSeries = null;
 let volumeSeries = null;
@@ -734,14 +720,9 @@ function createChart() {
 
   volumeSeries = chart.addHistogramSeries({
     color: '#26a69a',
-    priceFormat: {
-      type: 'volume',
-    },
+    priceFormat: { type: 'volume' },
     priceScaleId: '',
-    scaleMargins: {
-      top: 0.8,
-      bottom: 0,
-    },
+    scaleMargins: { top: 0.8, bottom: 0 },
   });
 
   const resizeObserver = new ResizeObserver(entries => {
@@ -772,7 +753,6 @@ function openChart(coin) {
 
   loadChart();
   clearInterval(refreshTimer);
-  // ★★★ এখানে ১০০০ মিলিসেকেন্ড (১ সেকেন্ড) করা হয়েছে ★★★
   refreshTimer = setInterval(loadChart, 1000); 
 }
 
@@ -916,14 +896,12 @@ async function placeTrade(direction) {
   downBtn.disabled = true;
   amountInput.disabled = true;
 
-  const balanceAfterStake = getBalance() - amount;
-  setBalance(balanceAfterStake);
-
+  // ⚠️ এখানে balance কমানো হচ্ছে না — এডমিন settle করার সময় কমবে।
+  // শুধু একটি pending trade তৈরি হবে।
   let entryPrice;
   try {
     entryPrice = await fetchLivePrice(currentSymbol.symbol);
   } catch (err) {
-    setBalance(balanceAfterStake + amount);
     resetTradeButtons();
     alert('Failed to fetch price, trade cancelled.');
     return;
@@ -933,6 +911,8 @@ async function placeTrade(direction) {
   const expectedReturn = amount * (duration.returnPct / 100);
   const orderNumber = generateOrderNumber();
 
+  // ✅ trade তৈরি (status: pending)
+  // ⚠️ নতুন Rules মতে create এর সময় result/forcedResult থাকা যাবে না।
   let tradeDocRef = null;
   try {
     tradeDocRef = await firebase.firestore().collection('trades').add({
@@ -948,10 +928,14 @@ async function placeTrade(direction) {
       orderNumber: orderNumber,
       status: 'pending',
       forcedResult: null,
+      result: null,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
   } catch (e) {
     console.error('Failed to save trade record:', e);
+    alert('Could not place trade: ' + e.message);
+    resetTradeButtons();
+    return;
   }
 
   tmTitle.textContent = currentSymbol.symbol.toLowerCase();
@@ -983,87 +967,16 @@ async function placeTrade(direction) {
     }
   }, 1000);
 
-  setTimeout(async () => {
+  // ✅ countdown শেষ হলে কোনো result ঠিক হবে না, balance বদলাবে না।
+  // শুধু "Result pending" মেসেজ দেখাবে।
+  setTimeout(() => {
     clearInterval(countdownTimer);
-    let exitPrice;
-    try {
-      exitPrice = await fetchLivePrice(currentSymbol.symbol);
-    } catch (err) {
-      setBalance(balanceAfterStake + amount);
-      if (tradeDocRef) {
-        tradeDocRef.update({ status: 'error', result: 'refunded' }).catch(()=>{});
-      }
-      tmTimerCircle.style.display = 'none';
-      tmResult.style.display = 'block';
-      tmResult.style.color = 'var(--red)';
-      tmResult.textContent = 'Error';
-      tmAgainBtn.style.display = 'block';
-      resetTradeButtons();
-      return;
-    }
-
-    let forcedResult = null;
-    if (tradeDocRef) {
-      try {
-        const snap = await tradeDocRef.get();
-        if (snap.exists) forcedResult = snap.data().forcedResult || null;
-      } catch (e) {}
-    }
-
-    let winRatePercent = null;
-    try {
-      const userSnap = await firebase.firestore().collection('users').doc(currentUser.uid).get();
-      if (userSnap.exists && typeof userSnap.data().winRatePercent === 'number') {
-        winRatePercent = userSnap.data().winRatePercent;
-      }
-    } catch (e) {}
-
-    const wentUp = exitPrice > entryPrice;
-    const wentDown = exitPrice < entryPrice;
-    let won, tie;
-    if (forcedResult === 'win') {
-      won = true; tie = false;
-    } else if (forcedResult === 'lose') {
-      won = false; tie = false;
-    } else if (winRatePercent !== null) {
-      won = (Math.random() * 100) < winRatePercent;
-      tie = false;
-    } else {
-      won = (direction === 'up' && wentUp) || (direction === 'down' && wentDown);
-      tie = exitPrice === entryPrice;
-    }
-
-    tmLast.textContent = exitPrice.toFixed(2) + ' USD';
     tmTimerCircle.style.display = 'none';
     tmResult.style.display = 'block';
-
-    let resultLabel;
-    if (tie) {
-      setBalance(balanceAfterStake + amount);
-      tmResult.style.color = 'var(--gold)';
-      tmResult.textContent = '±0 USD';
-      resultLabel = 'tie';
-    } else if (won) {
-      const profit = expectedReturn;
-      const payout = amount + profit;
-      setBalance(balanceAfterStake + payout);
-      tmResult.style.color = 'var(--green)';
-      tmResult.textContent = '+' + profit.toFixed(0) + ' USD';
-      resultLabel = 'win';
-    } else {
-      tmResult.style.color = 'var(--red)';
-      tmResult.textContent = '-' + amount.toFixed(0) + ' USD';
-      resultLabel = 'lose';
-    }
-
-    if (tradeDocRef) {
-      tradeDocRef.update({
-        exitPrice: exitPrice,
-        status: 'completed',
-        result: resultLabel,
-        resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).catch(e => console.error('Failed to update trade record:', e));
-    }
+    tmResult.style.color = 'var(--gold)';
+    tmResult.innerHTML = 
+      '⏳ Result pending<br><span style="font-size:13px;font-weight:normal;">' +
+      'Admin will verify and settle the result shortly.</span>';
 
     tmAgainBtn.style.display = 'block';
     resetTradeButtons();
