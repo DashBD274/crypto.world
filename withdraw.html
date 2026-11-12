@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Withdraw - ABC Company</title>
 <style>
-  /* ★★★ ডার্ক ও লাইট মোডের জন্য CSS ভেরিয়েবল ★★★ */
   :root {
     --bg-color: #0b0e11;
     --panel-color: #161a1e;
@@ -46,7 +45,6 @@
     background: var(--bg-color); color: var(--text-color); 
     padding-bottom: calc(40px + env(safe-area-inset-bottom)); 
     width:100%; height: 100vh;
-    /* মোবাইলে স্ক্রল ও জুম বন্ধ করতে */
     overflow: hidden; 
     overscroll-behavior: none;
     -webkit-text-size-adjust:100%;
@@ -78,7 +76,6 @@
   }
   .lang-select option { background: var(--panel-color); color: var(--text-color); }
 
-  /* কন্টেন্ট এরিয়া স্ক্রল হবে */
   #scroll-container {
     height: 100vh;
     overflow-y: auto;
@@ -89,6 +86,14 @@
   .content { padding:0 20px; }
   h2 { font-size:20px; margin:0 0 20px; }
 
+  .balance-info {
+    background: var(--panel-color); border:1px solid var(--border-color);
+    border-radius:8px; padding:12px 16px; margin-bottom:16px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .balance-info .label { color: var(--text-dim); font-size:13px; }
+  .balance-info .value { font-weight:bold; font-size:15px; color: var(--gold); }
+
   .field-label { font-size:12px; color: var(--text-dim); margin-bottom:6px; }
   .field-row {
     display:flex; align-items:center; background: var(--panel-color); border:1px solid var(--border-color);
@@ -96,7 +101,7 @@
   }
   .field-row input {
     flex:1; background:transparent; border:none; color: var(--text-color);
-    padding:14px; font-size:16px; outline:none; /* font-size 16px for iOS */
+    padding:14px; font-size:16px; outline:none;
   }
   .field-row input::placeholder { color: var(--text-dim); }
   
@@ -153,6 +158,12 @@
   <div class="content">
     <h2 data-i18n="withdraw">Withdraw</h2>
 
+    <!-- ✅ নতুন: ব্যালেন্স দেখানো -->
+    <div class="balance-info">
+      <span class="label">Available Balance</span>
+      <span class="value" id="available-balance">0.00 USDT</span>
+    </div>
+
     <div class="field-label" data-i18n="amount_usd">Amount (USD):</div>
     <div class="field-row">
       <input type="number" id="amount-input" placeholder="Amount...">
@@ -179,7 +190,6 @@
   </div>
 </div>
 
-<!-- ★★★ lang-theme.js যুক্ত করা হলো ★★★ -->
 <script src="lang-theme.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -224,7 +234,6 @@ function updateHeader() {
   const symbol = document.getElementById('coin-select').value;
   const coin = coinList.find(c => c.symbol === symbol);
   document.getElementById('header-icon').src = iconUrl(coin.icon);
-  // header-label translation update handled by global changeLanguage
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -235,15 +244,25 @@ document.addEventListener('DOMContentLoaded', () => {
 let currentUser = null;
 let currentBalance = 0;
 
-firebase.auth().onAuthStateChanged(async user => {
-  if (!user) { window.location.href = 'login.html'; return; }
+// ✅ নতুন: balance read করা (নতুন Rules-এ ইউজার নিজের balance পড়তে পারে)
+// onSnapshot দিয়ে লাইভ আপডেট
+firebase.auth().onAuthStateChanged(user => {
+  if (!user) { 
+    window.location.href = 'login.html'; 
+    return; 
+  }
   currentUser = user;
-  try {
-    const doc = await firebase.firestore().collection('users').doc(user.uid).get();
-    if (doc.exists && typeof doc.data().balance === 'number') {
-      currentBalance = doc.data().balance;
-    }
-  } catch (e) {}
+
+  firebase.firestore().collection('users').doc(user.uid)
+    .onSnapshot(doc => {
+      if (doc.exists) {
+        currentBalance = doc.data().balance || 0;
+        document.getElementById('available-balance').textContent = 
+          currentBalance.toFixed(2) + ' USDT';
+      }
+    }, err => {
+      console.error('Failed to load balance:', err);
+    });
 });
 
 document.getElementById('withdraw-btn').addEventListener('click', async () => {
@@ -279,10 +298,8 @@ document.getElementById('withdraw-btn').addEventListener('click', async () => {
     const feeAmount = amount * 0.02;
     const netAmount = amount - feeAmount;
 
-    await firebase.firestore().collection('users').doc(currentUser.uid).set({
-      balance: firebase.firestore.FieldValue.increment(-amount)
-    }, { merge: true });
-
+    // ✅ শুধু withdrawal ডকুমেন্ট তৈরি — balance কমানো এখানে হচ্ছে না!
+    // Balance কমবে এডমিন approve করলে (admin.html-এ)
     await firebase.firestore().collection('withdrawals').add({
       uid: currentUser.uid,
       userEmail: currentUser.email || '',
@@ -295,9 +312,12 @@ document.getElementById('withdraw-btn').addEventListener('click', async () => {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    currentBalance -= amount;
+    // ✅ currentBalance লোকালি কমাচ্ছি না — onSnapshot নিজেই আপডেট করবে
+    // (তবে pending থাকায় balance এখনো কমবে না, এডমিন approve করলে কমবে)
+
     statusEl.className = 'status-msg show';
-    statusEl.textContent = translations[lang]['withdraw_success'] || 'Your withdrawal request has been submitted and is pending review.';
+    statusEl.textContent = translations[lang]['withdraw_success'] || 
+      'Your withdrawal request has been submitted and is pending review.';
     document.getElementById('amount-input').value = '';
     document.getElementById('address-input').value = '';
   } catch (err) {
@@ -305,7 +325,6 @@ document.getElementById('withdraw-btn').addEventListener('click', async () => {
     statusEl.textContent = 'Something went wrong: ' + err.message;
   } finally {
     btn.disabled = false;
-    // Update text according to current language
     btn.textContent = translations[localStorage.getItem('appLang') || 'en']['withdraw_now'] || 'Withdraw now';
   }
 });
