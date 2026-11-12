@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Sign Up - ABC Company</title>
 <style>
-  /* ★★★ ডার্ক ও লাইট মোডের জন্য CSS ভেরিয়েবল ★★★ */
   :root {
     --bg-color: #0b0e11;
     --panel-color: #161a1e;
@@ -36,7 +35,6 @@
     margin: 0; padding: 0; height: 100%; width: 100%;
     background: var(--bg-color); color: var(--text-color);
     font-family: Arial, sans-serif;
-    /* মোবাইলে স্ক্রিন ডানে-বামে সরানো বন্ধ করতে */
     overflow: hidden; 
     overscroll-behavior: none;
     -webkit-text-size-adjust: 100%;
@@ -72,7 +70,6 @@
   }
   .box h2 { margin-top:0; text-align:center; margin-bottom: 20px; }
 
-  /* Theme & Lang Buttons */
   .box-header-controls {
     position: absolute; top: 15px; right: 15px;
     display: flex; gap: 6px; align-items: center;
@@ -84,7 +81,6 @@
   }
   .lang-select option { background: var(--panel-color); color: var(--text-color); }
 
-  /* Logo Rotator */
   .logo-container {
     width: 70px; height: 70px;
     margin: 0 auto 20px;
@@ -101,18 +97,16 @@
   .input-group input { 
     width:100%; padding:12px; padding-right: 40px; border-radius:6px; 
     border:1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); 
-    font-size:16px; /* iOS-এ জুম আটকাতে ১৬px */
+    font-size:16px;
     margin: 0; outline: none;
   }
   .input-group input:focus { border-color: var(--gold); }
 
-  /* Eye Icon */
   .eye-icon {
     position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
     cursor: pointer; color: var(--text-dim); font-size: 18px; user-select: none;
   }
 
-  /* Captcha Section */
   .captcha-row { display: flex; gap: 10px; align-items: center; margin: 12px 0; }
   .captcha-canvas {
     background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px;
@@ -135,7 +129,6 @@
   .msg { text-align:center; margin-top:10px; font-size:14px; min-height: 20px; }
   a { color: var(--gold); text-decoration: none; }
 
-  /* ===== Verification Overlay ===== */
   .verify-overlay {
     display:none;
     position:fixed; inset:0; background: var(--bg-color);
@@ -177,7 +170,6 @@
 <div id="app-container">
   <div class="box">
     
-    <!-- থিম ও ভাষা বাটন -->
     <div class="box-header-controls">
       <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
         <span id="theme-icon">🌙</span>
@@ -196,7 +188,6 @@
       </select>
     </div>
 
-    <!-- Logo Rotator -->
     <div class="logo-container">
       <img id="dynamicLogo" src="tradewallet.png" alt="Logo">
     </div>
@@ -216,7 +207,6 @@
       <span class="eye-icon" id="togglePassword">👁️</span>
     </div>
 
-    <!-- Captcha -->
     <div class="captcha-row">
       <div class="captcha-canvas" id="captchaCanvas"></div>
       <input type="text" id="captchaInput" placeholder="Enter code" autocomplete="off">
@@ -236,14 +226,12 @@
   <div class="verify-subtitle" id="verify-subtitle"></div>
 </div>
 
-<!-- ★★★ lang-theme.js যুক্ত করা হলো ★★★ -->
 <script src="lang-theme.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-// মোবাইলের আসল উচ্চতা ঠিক রাখার জন্য
 function setAppHeight(){
   const h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
   document.documentElement.style.setProperty('--app-height', h + 'px');
@@ -266,7 +254,6 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 
-// ==================== লোগো রোটেশন (প্রতি ৩ সেকেন্ড) ====================
 const logos = [
   'tradewallet.png', 
   'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/btc.png',
@@ -284,7 +271,6 @@ setInterval(() => {
   }, 300);
 }, 3000); 
 
-// ==================== পাসওয়ার্ড চোখ ====================
 const togglePassword = document.getElementById('togglePassword');
 const passwordInput = document.getElementById('password');
 
@@ -294,7 +280,6 @@ togglePassword.addEventListener('click', () => {
   togglePassword.textContent = type === 'password' ? '👁️' : '🙈';
 });
 
-// ==================== সহজ ক্যাপচা (শুধু সংখ্যা) ====================
 let currentCaptcha = '';
 const captchaCanvas = document.getElementById('captchaCanvas');
 
@@ -305,7 +290,6 @@ function generateCaptcha() {
 generateCaptcha(); 
 captchaCanvas.addEventListener('click', generateCaptcha); 
 
-// ==================== ইনপুট ফিল্ড ফরম্যাটিং ====================
 document.getElementById('fullname').addEventListener('input', function () {
   this.value = this.value.toUpperCase();
 });
@@ -313,24 +297,31 @@ document.getElementById('phone').addEventListener('input', function () {
   this.value = this.value.toLowerCase();
 });
 
-// ==================== অ্যাকাউন্ট আইডি জেনারেটর ====================
-async function getNextAccountId() {
+// ✅ উন্নত: retry যোগ করা
+async function getNextAccountId(retryCount = 0) {
   const counterRef = firebase.firestore().collection('counters').doc('users');
-  const nextNumber = await firebase.firestore().runTransaction(async (t) => {
-    const doc = await t.get(counterRef);
-    let current = 1000;
-    const existingCount = doc.exists ? doc.data().count : undefined;
-    if (typeof existingCount === 'number' && !isNaN(existingCount)) {
-      current = existingCount;
+  try {
+    const nextNumber = await firebase.firestore().runTransaction(async (t) => {
+      const doc = await t.get(counterRef);
+      let current = 1000;
+      const existingCount = doc.exists ? doc.data().count : undefined;
+      if (typeof existingCount === 'number' && !isNaN(existingCount)) {
+        current = existingCount;
+      }
+      const next = current + 1;
+      t.set(counterRef, { count: next });
+      return next;
+    });
+    return 'AB' + nextNumber;
+  } catch (e) {
+    if (retryCount < 3) {
+      await new Promise(r => setTimeout(r, 300 * (retryCount + 1)));
+      return getNextAccountId(retryCount + 1);
     }
-    const next = current + 1;
-    t.set(counterRef, { count: next });
-    return next;
-  });
-  return 'AB' + nextNumber;
+    throw e;
+  }
 }
 
-// ==================== সাইন আপ ফাংশন ====================
 async function signUp() {
   const fullName = document.getElementById('fullname').value.trim();
   const identifier = document.getElementById('phone').value.trim();
@@ -345,14 +336,12 @@ async function signUp() {
 
   msg.textContent = '';
 
-  // ১. খালি ফিল্ড চেক
   if (!fullName || !identifier || !password || !captchaEntered) {
     msg.style.color = 'var(--red)';
     msg.textContent = translations[lang]['fill_all_fields'] || 'Please fill in all fields.';
     return;
   }
 
-  // ২. ক্যাপচা চেক
   if (captchaEntered !== currentCaptcha) {
     msg.style.color = 'var(--red)';
     msg.textContent = translations[lang]['invalid_captcha'] || 'Invalid captcha code!';
@@ -361,7 +350,6 @@ async function signUp() {
     return;
   }
 
-  // ৩. পাসওয়ার্ড লেংথ চেক
   if (password.length < 6) {
     msg.style.color = 'var(--red)';
     msg.textContent = translations[lang]['password_short'] || 'Password must be at least 6 characters.';
@@ -377,13 +365,14 @@ async function signUp() {
     ? (translations[lang]['email_verified_sub'] || 'Your email address was successfully verified.')
     : (translations[lang]['mobile_verified_sub'] || 'Your mobile number was successfully verified.');
 
-  // ওভারলে দেখানো
   overlay.classList.add('active');
   iconArea.innerHTML = '<div class="verify-spinner"></div>';
   title.textContent = loadingTitle;
   subtitle.textContent = '';
 
   const minSpinnerTime = new Promise(resolve => setTimeout(resolve, 2000));
+
+  let createdUser = null;
 
   const signupWork = (async () => {
     try {
@@ -397,9 +386,9 @@ async function signUp() {
     }
 
     const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
-    const user = userCredential.user;
+    createdUser = userCredential.user;
     const accountId = await getNextAccountId();
-    await firebase.firestore().collection('users').doc(user.uid).set({
+    await firebase.firestore().collection('users').doc(createdUser.uid).set({
       fullName: fullName,
       accountId: accountId,
       identifier: identifier,
@@ -426,6 +415,16 @@ async function signUp() {
   } catch (err) {
     overlay.classList.remove('active');
     msg.style.color = 'var(--red)';
+    
+    // ✅ Rollback: auth account তৈরি হয়েছিল কিন্তু Firestore write ব্যর্থ
+    if (createdUser && err.code !== 'auth/email-already-in-use' && err.code !== 'auth/weak-password') {
+      try {
+        await createdUser.delete();
+        console.log('Rollback: deleted orphan auth account.');
+      } catch (deleteErr) {
+        console.error('Rollback failed:', deleteErr);
+      }
+    }
     
     if (err.code === 'auth/email-already-in-use') {
       msg.textContent = translations[lang]['email_in_use'] || 'This email/phone is already registered.';
