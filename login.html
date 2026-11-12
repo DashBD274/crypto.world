@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Log In - ABC Company</title>
 <style>
-  /* ★★★ ডার্ক ও লাইট মোডের জন্য CSS ভেরিয়েবল ★★★ */
   :root {
     --bg-color: #0b0e11;
     --panel-color: #161a1e;
@@ -40,7 +39,6 @@
     background: var(--bg-color);
     font-family: Arial, sans-serif;
     color: var(--text-color);
-    /* মোবাইলে স্ক্রিন ডানে-বামে সরানো বন্ধ করতে */
     overflow: hidden; 
     overscroll-behavior: none;
     -webkit-text-size-adjust: 100%;
@@ -59,7 +57,6 @@
     align-items: center;
     justify-content: center;
     padding: 20px;
-    /* iPhone এর সেফ এরিয়া (নচ) মেইনটেইন করতে */
     padding-top: calc(20px + env(safe-area-inset-top));
     padding-bottom: calc(20px + env(safe-area-inset-bottom));
     padding-left: calc(20px + env(safe-area-inset-left));
@@ -79,7 +76,6 @@
   }
   .box h2 { margin-top:0; text-align:center; margin-bottom: 20px; }
 
-  /* Theme & Lang Buttons */
   .box-header-controls {
     position: absolute; top: 15px; right: 15px;
     display: flex; gap: 6px; align-items: center;
@@ -91,7 +87,6 @@
   }
   .lang-select option { background: var(--panel-color); color: var(--text-color); }
   
-  /* Logo Rotator */
   .logo-container {
     width: 70px; height: 70px;
     margin: 0 auto 20px;
@@ -113,19 +108,17 @@
     border:1px solid var(--border-color); 
     background: var(--bg-color); 
     color: var(--text-color); 
-    font-size:16px; /* iOS-এ জুম আটকাতে ১৬px */
+    font-size:16px;
     margin: 0; 
     outline: none;
   }
   .input-group input:focus { border-color: var(--gold); }
   
-  /* Eye Icon */
   .eye-icon {
     position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
     cursor: pointer; color: var(--text-dim); font-size: 18px; user-select: none;
   }
   
-  /* Captcha Section */
   .captcha-row { display: flex; gap: 10px; align-items: center; margin: 12px 0; }
   .captcha-canvas {
     background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px;
@@ -166,7 +159,6 @@
 <div id="app-container">
   <div class="box" style="display:none;" id="login-box">
     
-    <!-- থিম ও ভাষা বাটন -->
     <div class="box-header-controls">
       <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
         <span id="theme-icon">🌙</span>
@@ -185,7 +177,6 @@
       </select>
     </div>
 
-    <!-- Logo Rotator -->
     <div class="logo-container">
       <img id="dynamicLogo" src="tradewallet.png" alt="Logo">
     </div>
@@ -201,7 +192,6 @@
       <span class="eye-icon" id="togglePassword">👁️</span>
     </div>
 
-    <!-- Captcha -->
     <div class="captcha-row">
       <div class="captcha-canvas" id="captchaCanvas"></div>
       <input type="text" id="captchaInput" placeholder="Enter code" autocomplete="off">
@@ -216,7 +206,6 @@
   </div>
 </div>
 
-<!-- ★★★ lang-theme.js যুক্ত করা হলো ★★★ -->
 <script src="lang-theme.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -235,7 +224,8 @@ if (window.visualViewport){
   window.visualViewport.addEventListener('scroll', setAppHeight);
 }
 
-const ADMIN_EMAIL = "mrtiger6662@gmail.com";
+// ⚠️ নতুন Rules ও লগইন আচরণের জন্য ADMIN_EMAIL এখানে সরানো হয়েছে।
+// এডমিন লগইনের পর market.html-এ যাবে, তারপর ম্যানুয়ালি admin.html টাইপ করে যাবে।
 
 const firebaseConfig = {
   apiKey: "AIzaSyDJoPr8RvE1xkNTKRr5kwTx6E51GCMn_HE",
@@ -247,7 +237,7 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 
-// ==================== লোগো রোটেশন (প্রতি ৩ সেকেন্ড) ====================
+// ==================== লোগো রোটেশন ====================
 const logos = [
   'tradewallet.png', 
   'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/btc.png',
@@ -305,10 +295,8 @@ setBestAvailablePersistence().then(() => {
     const loginBox = document.getElementById('login-box');
 
     if (user) {
-      const dest = (user.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase()
-        ? 'admin.html'
-        : 'market.html';
-      window.location.replace(dest);
+      // ✅ সব ইউজার (এডমিন সহ) → market.html
+      window.location.replace('market.html');
     } else {
       loadingOverlay.style.display = 'none';
       loginBox.style.display = 'block';
@@ -351,11 +339,9 @@ function logIn() {
 
   setBestAvailablePersistence()
     .then(() => firebase.auth().signInWithEmailAndPassword(email, password))
-    .then((cred) => {
-      const destination = (cred.user.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase()
-        ? 'admin.html'
-        : 'market.html';
-      window.location.replace(destination);
+    .then(() => {
+      // ✅ সব ইউজার → market.html
+      window.location.replace('market.html');
     })
     .catch(err => {
       msg.style.color = 'var(--red)';
