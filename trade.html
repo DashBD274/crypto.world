@@ -226,7 +226,7 @@
     display:flex; align-items:center; justify-content:center;
     margin:0 auto 20px; font-weight:bold; font-size:16px; color: var(--gold);
   }
-  .tm-result { font-size:20px; font-weight:bold; margin-bottom:18px; display:none; line-height:1.4; }
+  .tm-result { font-size:28px; font-weight:bold; margin-bottom:18px; display:none; }
   .tm-rows { text-align:left; margin-bottom:14px; }
   .tm-row {
     display:flex; justify-content:space-between; padding:7px 0;
@@ -351,7 +351,6 @@
           <div>Low: <span class="val" id="ohlc-low">-</span></div>
           <div>Close: <span class="val" id="ohlc-close">-</span></div>
         </div>
-        <!-- Lightweight Chart Container -->
         <div id="chart-container"></div>
         <div class="time-labels" id="time-labels"></div>
       </div>
@@ -417,6 +416,7 @@ const firebaseConfig = {
   appId: "1:1026212780106:web:985ec1bc35837d6320eeb3"
 };
 firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 let currentUser = null;
 let currentBalance = 0;
@@ -434,7 +434,7 @@ firebase.auth().onAuthStateChanged(user => {
     return;
   }
   currentUser = user;
-  firebase.firestore().collection('users').doc(user.uid)
+  db.collection('users').doc(user.uid)
     .onSnapshot(doc => {
       if (doc.exists) {
         const data = doc.data();
@@ -490,7 +490,7 @@ let selectedDuration = null;
 
 async function loadTradeConfig() {
   try {
-    const doc = await firebase.firestore().collection('settings').doc('tradeConfig').get();
+    const doc = await db.collection('settings').doc('tradeConfig').get();
     if (doc.exists && Array.isArray(doc.data().durations) && doc.data().durations.length) {
       durationList = doc.data().durations.map(d => ({
         seconds: d.seconds, returnPct: d.returnPct, min: d.min,
@@ -499,7 +499,7 @@ async function loadTradeConfig() {
       }));
     } else {
       const seedData = durationList.map(d => ({ ...d, max: d.max === Infinity ? null : d.max }));
-      await firebase.firestore().collection('settings').doc('tradeConfig').set({ durations: seedData });
+      await db.collection('settings').doc('tradeConfig').set({ durations: seedData });
     }
   } catch (e) {
     console.error('Failed to load trade config, using defaults:', e);
@@ -907,6 +907,11 @@ async function placeTrade(direction) {
   downBtn.disabled = true;
   amountInput.disabled = true;
 
+  // ✅ Balance check & immediate deduction logic
+  // নতুন ফ্লোতে আমরা ট্রেড শুরুর সময়ই ব্যালেন্স কেটে নিচ্ছি না, 
+  // কারণ রুলস অনুযায়ী ক্লায়েন্ট সরাসরি ব্যালেন্স কমাতে পারবে না।
+  // ব্যালেন্স কমবে অ্যাডমিন সেটেল করার সময়।
+
   let entryPrice;
   try {
     entryPrice = await fetchLivePrice(currentSymbol.symbol);
@@ -922,7 +927,7 @@ async function placeTrade(direction) {
 
   let tradeDocRef = null;
   try {
-    tradeDocRef = await firebase.firestore().collection('trades').add({
+    tradeDocRef = await db.collection('trades').add({
       uid: currentUser.uid,
       userEmail: currentUser.email || '',
       symbol: currentSymbol.symbol,
@@ -966,7 +971,9 @@ async function placeTrade(direction) {
     if (remaining >= 0) {
       tmTimerText.textContent = remaining + 's';
     }
-    if (remaining > 0 && remaining % 2 === 0) {
+    
+    // শেষ ২ সেকেন্ডে লাইভ প্রাইস দেখানো বন্ধ
+    if (remaining > 2 && remaining % 2 === 0) {
       try {
         const p = await fetchLivePrice(currentSymbol.symbol);
         tmLast.textContent = p.toFixed(2) + ' USD';
@@ -974,28 +981,62 @@ async function placeTrade(direction) {
     }
   }, 1000);
 
-  // ✅ countdown শেষ হলে কোনো result ঠিক হবে না, balance বদলাবে না।
-  // অ্যাডমিন প্যানেল স্বয়ংক্রিয়ভাবে রেজাল্ট সেটেল করবে।
-  setTimeout(() => {
+  setTimeout(async () => {
     clearInterval(countdownTimer);
     tmTimerCircle.style.display = 'none';
     tmResult.style.display = 'block';
     tmResult.style.color = 'var(--gold)';
-    tmResult.innerHTML = 
-      '⏳ Result pending<br><span style="font-size:13px;font-weight:normal;">' +
-      'Admin is verifying and settling the result. Please check your Assets page shortly.</span>';
+    tmResult.innerHTML = '🔄 Settling...';
 
-    tmAgainBtn.style.display = 'block';
-    resetTradeButtons();
-    
-    // ইউজারের ব্যালেন্স আপডেট দেখানোর জন্য
-    if (currentUser) {
-      firebase.firestore().collection('users').doc(currentUser.uid).get().then(doc => {
-        if(doc.exists) {
-           currentBalance = doc.data().balance || 0;
-           updateBalanceDisplay();
+    // অ্যাডমিন প্যানেলকে জানানোর জন্য forcedResult আপডেট করা
+    // (যদি অ্যাডমিন প্যানেল ওপেন থাকে, সে এই ফ্ল্যাগ দেখে সাথে সাথে সেটেল করবে)
+    try {
+      await tradeDocRef.update({ needsSettlement: true });
+
+      // অপেক্ষা করা: অ্যাডমিন প্যানেল কতক্ষণে রেজাল্ট দেবে
+      let attempts = 0;
+      const maxAttempts = 50; // সর্বোচ্চ ৫ সেকেন্ড অপেক্ষা
+      
+      const checkResult = setInterval(async () => {
+        attempts++;
+        try {
+          const snap = await tradeDocRef.get();
+          if (snap.exists && snap.data().status === 'completed') {
+            clearInterval(checkResult);
+            const tradeData = snap.data();
+            const outcome = tradeData.result; // 'win' বা 'lose'
+
+            if (outcome === 'win') {
+              const profit = expectedReturn;
+              tmResult.style.color = 'var(--green)';
+              tmResult.textContent = '+' + profit.toFixed(0) + ' USD';
+            } else {
+              tmResult.style.color = 'var(--red)';
+              tmResult.textContent = '-' + amount.toFixed(0) + ' USD';
+            }
+
+            // লোকাল ব্যালেন্স আপডেট (অ্যাডমিন ইতিমধ্যে ডেটাবেসে আপডেট করেছে)
+            currentBalance = (await db.collection('users').doc(currentUser.uid).get()).data().balance;
+            updateBalanceDisplay();
+
+            tmAgainBtn.style.display = 'block';
+            resetTradeButtons();
+          } else if (attempts >= maxAttempts) {
+             // যদি ৫ সেকেন্ডেও অ্যাডমিন সেটেল না করে
+             clearInterval(checkResult);
+             tmResult.innerHTML = 'Result pending<br><span style="font-size:13px;font-weight:normal;">Admin is verifying. Check Assets page later.</span>';
+             tmAgainBtn.style.display = 'block';
+             resetTradeButtons();
+          }
+        } catch (err) {
+          console.error('Error checking result:', err);
         }
-      });
+      }, 100); // প্রতি ১০০ মিলিসেকেন্ডে চেক করবে
+
+    } catch (err) {
+      tmResult.innerHTML = 'Result pending';
+      tmAgainBtn.style.display = 'block';
+      resetTradeButtons();
     }
   }, duration.seconds * 1000);
 }
