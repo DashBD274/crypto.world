@@ -907,11 +907,6 @@ async function placeTrade(direction) {
   downBtn.disabled = true;
   amountInput.disabled = true;
 
-  // ✅ Balance check & immediate deduction logic
-  // নতুন ফ্লোতে আমরা ট্রেড শুরুর সময়ই ব্যালেন্স কেটে নিচ্ছি না, 
-  // কারণ রুলস অনুযায়ী ক্লায়েন্ট সরাসরি ব্যালেন্স কমাতে পারবে না।
-  // ব্যালেন্স কমবে অ্যাডমিন সেটেল করার সময়।
-
   let entryPrice;
   try {
     entryPrice = await fetchLivePrice(currentSymbol.symbol);
@@ -972,8 +967,8 @@ async function placeTrade(direction) {
       tmTimerText.textContent = remaining + 's';
     }
     
-    // শেষ ২ সেকেন্ডে লাইভ প্রাইস দেখানো বন্ধ
-    if (remaining > 2 && remaining % 2 === 0) {
+    // লাইভ প্রাইস আপডেট
+    if (remaining > 0 && remaining % 2 === 0) {
       try {
         const p = await fetchLivePrice(currentSymbol.symbol);
         tmLast.textContent = p.toFixed(2) + ' USD';
@@ -981,6 +976,7 @@ async function placeTrade(direction) {
     }
   }, 1000);
 
+  // কাউন্টডাউন শেষ হলে
   setTimeout(async () => {
     clearInterval(countdownTimer);
     tmTimerCircle.style.display = 'none';
@@ -988,12 +984,11 @@ async function placeTrade(direction) {
     tmResult.style.color = 'var(--gold)';
     tmResult.innerHTML = '🔄 Settling...';
 
-    // অ্যাডমিন প্যানেলকে জানানোর জন্য forcedResult আপডেট করা
-    // (যদি অ্যাডমিন প্যানেল ওপেন থাকে, সে এই ফ্ল্যাগ দেখে সাথে সাথে সেটেল করবে)
     try {
+      // ১. অ্যাডমিনকে সিগন্যাল পাঠানো (নতুন ট্রেড সেটেল করার জন্য)
       await tradeDocRef.update({ needsSettlement: true });
 
-      // অপেক্ষা করা: অ্যাডমিন প্যানেল কতক্ষণে রেজাল্ট দেবে
+      // ২. অপেক্ষা করা: অ্যাডমিন প্যানেল কতক্ষণে রেজাল্ট দেবে
       let attempts = 0;
       const maxAttempts = 50; // সর্বোচ্চ ৫ সেকেন্ড অপেক্ষা
       
@@ -1014,10 +1009,6 @@ async function placeTrade(direction) {
               tmResult.style.color = 'var(--red)';
               tmResult.textContent = '-' + amount.toFixed(0) + ' USD';
             }
-
-            // লোকাল ব্যালেন্স আপডেট (অ্যাডমিন ইতিমধ্যে ডেটাবেসে আপডেট করেছে)
-            currentBalance = (await db.collection('users').doc(currentUser.uid).get()).data().balance;
-            updateBalanceDisplay();
 
             tmAgainBtn.style.display = 'block';
             resetTradeButtons();
