@@ -434,7 +434,6 @@ firebase.auth().onAuthStateChanged(user => {
     return;
   }
   currentUser = user;
-  // ইউজারের লাইভ ব্যালেন্স ট্র্যাক করা
   db.collection('users').doc(user.uid)
     .onSnapshot(doc => {
       if (doc.exists) {
@@ -968,6 +967,7 @@ async function placeTrade(direction) {
       tmTimerText.textContent = remaining + 's';
     }
     
+    // লাইভ প্রাইস আপডেট
     if (remaining > 0 && remaining % 2 === 0) {
       try {
         const p = await fetchLivePrice(currentSymbol.symbol);
@@ -976,6 +976,7 @@ async function placeTrade(direction) {
     }
   }, 1000);
 
+  // কাউন্টডাউন শেষ হলে
   setTimeout(async () => {
     clearInterval(countdownTimer);
     tmTimerCircle.style.display = 'none';
@@ -984,12 +985,12 @@ async function placeTrade(direction) {
     tmResult.innerHTML = '🔄 Settling...';
 
     try {
-      // অ্যাডমিন প্যানেলকে সিগন্যাল পাঠানো
+      // ১. অ্যাডমিনকে সিগন্যাল পাঠানো (নতুন ট্রেড সেটেল করার জন্য)
       await tradeDocRef.update({ needsSettlement: true });
 
-      // অপেক্ষা করা: অ্যাডমিন প্যানেল কতক্ষণে রেজাল্ট দেবে
+      // ২. অপেক্ষা করা: অ্যাডমিন প্যানেল কতক্ষণে রেজাল্ট দেবে
       let attempts = 0;
-      const maxAttempts = 50; // ৫ সেকেন্ড পর্যন্ত অপেক্ষা
+      const maxAttempts = 50; // সর্বোচ্চ ৫ সেকেন্ড অপেক্ষা
       
       const checkResult = setInterval(async () => {
         attempts++;
@@ -1012,6 +1013,7 @@ async function placeTrade(direction) {
             tmAgainBtn.style.display = 'block';
             resetTradeButtons();
           } else if (attempts >= maxAttempts) {
+             // যদি ৫ সেকেন্ডেও অ্যাডমিন সেটেল না করে
              clearInterval(checkResult);
              tmResult.innerHTML = 'Result pending<br><span style="font-size:13px;font-weight:normal;">Admin is verifying. Check Assets page later.</span>';
              tmAgainBtn.style.display = 'block';
@@ -1020,7 +1022,7 @@ async function placeTrade(direction) {
         } catch (err) {
           console.error('Error checking result:', err);
         }
-      }, 100);
+      }, 100); // প্রতি ১০০ মিলিসেকেন্ডে চেক করবে
 
     } catch (err) {
       tmResult.innerHTML = 'Result pending';
