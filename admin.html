@@ -1120,7 +1120,7 @@ async function saveWinRate(uid) {
 }
 
 // ==========================================
-// TRADES (Fixed Auto-Settlement Logic)
+// TRADES (Auto-Settlement & Timer Lock Logic)
 // ==========================================
 let allTrades = [];
 let tradesListenerActive = false;
@@ -1173,12 +1173,13 @@ setInterval(async () => {
 
   for (let trade of pending) {
     let startMs = 0;
+    // createdAt যদি null বা undefined থাকে, তবে ডেটাবেসে টাইম সেভ হতে ১-২ সেকেন্ড দেরি হচ্ছে
     if (trade.createdAt && trade.createdAt.toDate) {
       startMs = trade.createdAt.toDate().getTime();
     } else if (typeof trade.createdAt === 'number') {
       startMs = trade.createdAt;
     } else {
-      startMs = now - 999999; // ফলব্যাক
+      startMs = now - 5000; // ফলব্যাক: ধরুন ট্রেড ৫ সেকেন্ড আগে হয়েছে
     }
 
     const durationMs = (trade.durationSeconds || 60) * 1000;
@@ -1226,15 +1227,17 @@ function renderTrades(list) {
       ? `<span class="badge badge-${d.result}">${d.result}</span>`
       : (d.forcedResult ? `<span class="badge badge-pending">forcing: ${d.forcedResult}</span>` : '-');
 
-    // টাইম শেষ হয়েছে কিনা চেক করা (এটি না হলে বাটন লক থাকবে)
+    // টাইম শেষ হয়েছে কিনা চেক করা
     let timeOver = false;
     const now = Date.now();
+    
     if (d.createdAt && d.createdAt.toDate) {
       timeOver = (now > d.createdAt.toDate().getTime() + (d.durationSeconds || 60) * 1000);
     } else if (typeof d.createdAt === 'number') {
       timeOver = (now > d.createdAt + (d.durationSeconds || 60) * 1000);
     } else {
-      timeOver = true;
+      // createdAt যদি null থাকে, তার মানে ট্রেড এইমাত্র শুরু হয়েছে, সুতরাং বাটন চালু থাকবে
+      timeOver = false; 
     }
 
     // বাটন তখনই ক্লিকযোগ্য হবে যখন টাইম শেষ হবে
