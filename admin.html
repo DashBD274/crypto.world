@@ -1287,16 +1287,17 @@ async function forceTrade(tradeId, outcome, isAuto = false) {
     const amount = Number(trade.amount) || 0;
     const expectedReturn = Number(trade.expectedReturn) || 0;
 
-    let balanceDelta = 0;
+    // ✅ এখানে ব্যালেন্স আপডেটের লজিক সম্পূর্ণ স্পষ্ট করা হয়েছে
+    let balanceValue = 0;
     if (outcome === 'win') {
-      balanceDelta = amount + expectedReturn;
+      balanceValue = amount + expectedReturn; 
     } else if (outcome === 'lose') {
-      balanceDelta = -amount;
+      balanceValue = -amount; 
     }
 
     // ১. ইউজারের ব্যালেন্স আপডেট
     await db.collection('users').doc(trade.uid).set({
-      balance: firebase.firestore.FieldValue.increment(balanceDelta)
+      balance: firebase.firestore.FieldValue.increment(balanceValue)
     }, { merge: true });
 
     // ২. ট্রেড ডকুমেন্ট আপডেট
@@ -1309,7 +1310,7 @@ async function forceTrade(tradeId, outcome, isAuto = false) {
     });
 
     if (!isAuto) {
-      showToast(`Trade settled: ${outcome.toUpperCase()}. Balance ${balanceDelta >= 0 ? '+' : ''}${balanceDelta.toFixed(2)} USDT.`, 'success');
+      showToast(`Trade settled: ${outcome.toUpperCase()}. Balance ${balanceValue >= 0 ? '+' : ''}${balanceValue.toFixed(2)} USDT.`, 'success');
     }
     
     loadUsers(); 
