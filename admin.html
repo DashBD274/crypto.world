@@ -29,7 +29,6 @@
   }
 
   * { box-sizing: border-box; }
-
   html, body { height: 100%; }
 
   body {
@@ -1121,7 +1120,7 @@ async function saveWinRate(uid) {
 }
 
 // ==========================================
-// TRADES (Auto-Settlement Logic)
+// TRADES
 // ==========================================
 let allTrades = [];
 let tradesListenerActive = false;
@@ -1129,7 +1128,6 @@ let tradesListenerActive = false;
 async function loadTrades() {
   const tbody = document.getElementById('trades-tbody');
   
-  // যদি ইতিমধ্যে লিসেনার চালু থাকে, তবে নতুন করে চালু করবো না
   if (tradesListenerActive) return;
   
   tbody.innerHTML = '<tr><td colspan="9" class="empty-msg">Loading trades...</td></tr>';
@@ -1138,8 +1136,7 @@ async function loadTrades() {
   try {
     db.collection('trades').orderBy('createdAt', 'desc').limit(100).onSnapshot(async (snap) => {
       allTrades = [];
-      let hasPending = false;
-
+      
       snap.forEach(doc => {
         const d = doc.data();
         const u = userLookup[d.uid];
@@ -1148,13 +1145,7 @@ async function loadTrades() {
           ...d,
           accountId: u ? u.accountId : (d.uid || '-')
         });
-        if (d.status === 'pending') hasPending = true;
       });
-
-      // যদি কোনো পেন্ডিং ট্রেড থাকে, তবে সেটেল করার চেষ্টা করুন
-      if (hasPending) {
-        await autoSettleTrades();
-      }
 
       renderTrades(allTrades);
       
@@ -1167,37 +1158,6 @@ async function loadTrades() {
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="9" class="empty-msg">Failed: ${e.message}</td></tr>`;
     tradesListenerActive = false;
-  }
-}
-
-async function autoSettleTrades() {
-  const pendingTrades = allTrades.filter(t => t.status === 'pending');
-  
-  for (let trade of pendingTrades) {
-    // ট্রেড তৈরি হওয়ার কমপক্ষে ২ সেকেন্ড পর সেটেল করুন, যাতে কাউন্টডাউন শেষ হওয়ার আগেই সেটেল না হয়ে যায়
-    // (যদি ক্লায়েন্ট-সাইডে কাউন্টডাউন থাকে)
-    try {
-      const u = userLookup[trade.uid];
-      if (!u) continue;
-
-      // উইন রেট চেক
-      const winRate = typeof u.winRatePercent === 'number' ? u.winRatePercent : 0;
-      
-      let outcome = 'lose';
-      if (winRate >= 100) {
-        outcome = 'win';
-      } else if (winRate > 0) {
-        if (Math.random() * 100 < winRate) {
-          outcome = 'win';
-        }
-      }
-
-      // Settle
-      await forceTrade(trade.id, outcome, true);
-      
-    } catch (err) {
-      console.error('Auto settle error:', err);
-    }
   }
 }
 
@@ -1214,12 +1174,13 @@ function renderTrades(list) {
   tbody.innerHTML = '';
 
   list.forEach(d => {
-    const isPending = d.status === 'pending';
     const resultBadge = d.result
       ? `<span class="badge badge-${d.result}">${d.result}</span>`
       : (d.forcedResult ? `<span class="badge badge-pending">forcing: ${d.forcedResult}</span>` : '-');
 
     const tr = document.createElement('tr');
+    
+    // এখানে বাটনগুলো থেকে 'disabled' অ্যাট্রিবিউট সরানো হয়েছে
     tr.innerHTML = `
       <td>${d.userEmail || '-'}</td>
       <td class="mono">${d.accountId}</td>
@@ -1230,8 +1191,8 @@ function renderTrades(list) {
       <td><span class="badge badge-${d.status}">${d.status}</span></td>
       <td>${resultBadge}</td>
       <td>
-        <button class="btn btn-win" ${isPending ? '' : 'disabled'} onclick="forceTrade('${d.id}','win')">Win</button>
-        <button class="btn btn-lose" ${isPending ? '' : 'disabled'} onclick="forceTrade('${d.id}','lose')">Lose</button>
+        <button class="btn btn-win" onclick="forceTrade('${d.id}','win')">Win</button>
+        <button class="btn btn-lose" onclick="forceTrade('${d.id}','lose')">Lose</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -1246,14 +1207,13 @@ function filterTrades() {
 
 document.getElementById('trades-search').addEventListener('input', filterTrades);
 
-async function forceTrade(tradeId, outcome, isAuto = false) {
+async function forceTrade(tradeId, outcome) {
   try {
     const tradeSnap = await db.collection('trades').doc(tradeId).get();
     if (!tradeSnap.exists) return;
     const trade = tradeSnap.data();
 
-    if (trade.status !== 'pending') return;
-
+    // স্ট্যাটাস pending না থাকলেও এখন অ্যাডমিন ক্লিক করতে পারবে
     const amount = Number(trade.amount) || 0;
     const expectedReturn = Number(trade.expectedReturn) || 0;
 
@@ -1264,12 +1224,12 @@ async function forceTrade(tradeId, outcome, isAuto = false) {
       balanceDelta = -amount;
     }
 
-    // Balance update
+    // ১. ইউজারের ব্যালেন্স আপডেট
     await db.collection('users').doc(trade.uid).set({
       balance: firebase.firestore.FieldValue.increment(balanceDelta)
     }, { merge: true });
 
-    // Trade update
+    // ২. ট্রেড ডকুমেন্ট আপডেট
     await db.collection('trades').doc(tradeId).update({
       status: 'completed',
       result: outcome,
@@ -1278,12 +1238,11 @@ async function forceTrade(tradeId, outcome, isAuto = false) {
       resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    if (!isAuto) {
-      showToast(`Trade settled: ${outcome.toUpperCase()}. Balance ${balanceDelta >= 0 ? '+' : ''}${balanceDelta.toFixed(2)} USDT.`, 'success');
-    }
+    showToast(`Trade settled: ${outcome.toUpperCase()}. Balance ${balanceDelta >= 0 ? '+' : ''}${balanceDelta.toFixed(2)} USDT.`, 'success');
+    loadUsers();
   } catch (e) {
     console.error('Failed to force trade:', e);
-    if (!isAuto) showToast('Failed: ' + e.message, 'error');
+    showToast('Failed: ' + e.message, 'error');
   }
 }
 
@@ -1380,6 +1339,7 @@ async function approveDeposit(depositId, uid) {
 
     showToast('Deposit approved.', 'success');
     loadDeposits();
+    loadUsers();
   } catch (e) {
     showToast('Failed: ' + e.message, 'error');
   }
