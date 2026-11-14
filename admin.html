@@ -968,6 +968,7 @@ firebase.auth().onAuthStateChanged(user => {
 
   document.getElementById('admin-view').style.display = 'block';
   loadUsers();
+  loadTrades(); // অ্যাডমিন প্যানেল ওপেন হলেই ট্রেড লোড হবে
 });
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -977,7 +978,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.add('active');
     document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
 
-    if (btn.dataset.tab === 'trades') loadTrades();
     if (btn.dataset.tab === 'deposits') loadDeposits();
     if (btn.dataset.tab === 'withdrawals') loadWithdrawals();
     if (btn.dataset.tab === 'coins') loadCoins();
@@ -1120,7 +1120,7 @@ async function saveWinRate(uid) {
 }
 
 // ==========================================
-// TRADES (Timer Lock Logic Fixed)
+// TRADES (Auto-Settlement Logic based on Win Rate)
 // ==========================================
 let allTrades = [];
 let tradesListenerActive = false;
@@ -1161,6 +1161,55 @@ async function loadTrades() {
     tradesListenerActive = false;
   }
 }
+
+// গ্লোবাল অটো-সেটেলমেন্ট লুপ (প্যানেল ওপেন থাকলেই কাজ করবে)
+setInterval(async () => {
+  if (!tradesListenerActive) return;
+  
+  const pending = allTrades.filter(t => t.status === 'pending');
+  if (pending.length === 0) return;
+
+  const now = Date.now();
+
+  for (let trade of pending) {
+    let startMs = 0;
+    if (trade.createdAt && trade.createdAt.toDate) {
+      startMs = trade.createdAt.toDate().getTime();
+    } else if (typeof trade.createdAt === 'number') {
+      startMs = trade.createdAt;
+    } else {
+      startMs = now - 5000; // যদি createdAt না থাকে, তবে ৫ সেকেন্ড আগে শুরু হয়েছে ধরে নিন
+    }
+
+    const durationMs = (trade.durationSeconds || 60) * 1000;
+    
+    // যদি ট্রেডের সময় শেষ হয়ে যায় (৫ সেকেন্ড বাফার টাইম)
+    if (now > startMs + durationMs + 2000) {
+      try {
+        // ইউজারের Win Rate চেক
+        const uSnap = await db.collection('users').doc(trade.uid).get();
+        let winRate = 0;
+        if (uSnap.exists && typeof uSnap.data().winRatePercent === 'number') {
+          winRate = uSnap.data().winRatePercent;
+        }
+
+        // রেজাল্ট ক্যালকুলেশন
+        let outcome = 'lose';
+        if (winRate >= 100) {
+          outcome = 'win';
+        } else if (winRate > 0) {
+          if (Math.random() * 100 < winRate) outcome = 'win';
+        }
+
+        // সেটেল করা
+        await forceTrade(trade.id, outcome, true);
+
+      } catch (err) {
+        console.error('Auto settle error:', err);
+      }
+    }
+  }
+}, 2000); // প্রতি ২ সেকেন্ডে চেক করবে
 
 function renderTrades(list) {
   const tbody = document.getElementById('trades-tbody');
@@ -1229,6 +1278,7 @@ async function forceTrade(tradeId, outcome, isAuto = false) {
     if (!tradeSnap.exists) return;
     const trade = tradeSnap.data();
 
+    // যদি অলরেডি Completed হয়ে যায়, তবে আর কিছু হবে না
     if (trade.status === 'completed') {
       if(!isAuto) showToast('This trade is already settled.', 'error');
       return;
