@@ -1120,7 +1120,7 @@ async function saveWinRate(uid) {
 }
 
 // ==========================================
-// TRADES (Auto-Settlement & Timer Lock Logic)
+// TRADES (Timer Lock Logic Fixed)
 // ==========================================
 let allTrades = [];
 let tradesListenerActive = false;
@@ -1162,54 +1162,6 @@ async function loadTrades() {
   }
 }
 
-// গ্লোবাল অটো-সেটেলমেন্ট লুপ (প্যানেল ওপেন থাকলেই কাজ করবে)
-setInterval(async () => {
-  if (!tradesListenerActive) return;
-  
-  const pending = allTrades.filter(t => t.status === 'pending');
-  if (pending.length === 0) return;
-
-  const now = Date.now();
-
-  for (let trade of pending) {
-    let startMs = 0;
-    // createdAt যদি null বা undefined থাকে, তবে ডেটাবেসে টাইম সেভ হতে ১-২ সেকেন্ড দেরি হচ্ছে
-    if (trade.createdAt && trade.createdAt.toDate) {
-      startMs = trade.createdAt.toDate().getTime();
-    } else if (typeof trade.createdAt === 'number') {
-      startMs = trade.createdAt;
-    } else {
-      startMs = now - 5000; // ফলব্যাক: ধরুন ট্রেড ৫ সেকেন্ড আগে হয়েছে
-    }
-
-    const durationMs = (trade.durationSeconds || 60) * 1000;
-    
-    // যদি ট্রেডের সময় শেষ হয়ে যায়
-    if (now > startMs + durationMs) {
-      try {
-        // ইউজারের Win Rate চেক
-        const uSnap = await db.collection('users').doc(trade.uid).get();
-        let winRate = 0;
-        if (uSnap.exists && typeof uSnap.data().winRatePercent === 'number') {
-          winRate = uSnap.data().winRatePercent;
-        }
-
-        let outcome = 'lose';
-        if (winRate >= 100) {
-          outcome = 'win';
-        } else if (winRate > 0) {
-          if (Math.random() * 100 < winRate) outcome = 'win';
-        }
-
-        await forceTrade(trade.id, outcome, true);
-
-      } catch (err) {
-        console.error('Auto settle error:', err);
-      }
-    }
-  }
-}, 2000); // প্রতি ২ সেকেন্ডে চেক করবে
-
 function renderTrades(list) {
   const tbody = document.getElementById('trades-tbody');
   document.getElementById('trades-count').textContent =
@@ -1240,8 +1192,8 @@ function renderTrades(list) {
       timeOver = false; 
     }
 
-    // বাটন তখনই ক্লিকযোগ্য হবে যখন টাইম শেষ হবে
-    const btnDisabled = !timeOver;
+    // বাটন লক হবে শুধুমাত্র তখনই যখন টাইম শেষ হয়ে যাবে
+    const btnDisabled = timeOver;
 
     const tr = document.createElement('tr');
     
@@ -1277,7 +1229,6 @@ async function forceTrade(tradeId, outcome, isAuto = false) {
     if (!tradeSnap.exists) return;
     const trade = tradeSnap.data();
 
-    // যদি অলরেডি Completed হয়ে যায়, তবে আর কিছু হবে না
     if (trade.status === 'completed') {
       if(!isAuto) showToast('This trade is already settled.', 'error');
       return;
