@@ -29,6 +29,7 @@
   }
 
   * { box-sizing: border-box; }
+
   html, body { height: 100%; }
 
   body {
@@ -968,7 +969,6 @@ firebase.auth().onAuthStateChanged(user => {
 
   document.getElementById('admin-view').style.display = 'block';
   loadUsers();
-  loadTrades(); // অ্যাডমিন প্যানেল ওপেন হলেই ট্রেড লোড হবে
 });
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -978,6 +978,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.add('active');
     document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
 
+    if (btn.dataset.tab === 'trades') loadTrades();
     if (btn.dataset.tab === 'deposits') loadDeposits();
     if (btn.dataset.tab === 'withdrawals') loadWithdrawals();
     if (btn.dataset.tab === 'coins') loadCoins();
@@ -1048,7 +1049,7 @@ function renderUsers(list) {
       <td><strong>${balance}</strong></td>
       <td><input type="number" class="mini-input" placeholder="${balance}" id="bal-${u.uid}"></td>
       <td><button class="btn btn-save" onclick="saveUserBalance('${u.uid}')">Save</button></td>
-      <td><input type="number" min="0" max="100" class="mini-input" style="width:72px;" placeholder="off" value="${u.winRatePercent}" id="winrate-${u.uid}"></td>
+      <td><input type="number" min="1" max="100" class="mini-input" style="width:72px;" placeholder="off" value="${u.winRatePercent}" id="winrate-${u.uid}"></td>
       <td><button class="btn btn-save" onclick="saveWinRate('${u.uid}')">Save</button></td>
     `;
     tbody.appendChild(tr);
@@ -1105,8 +1106,8 @@ async function saveWinRate(uid) {
 
   const val = parseInt(raw);
 
-  if (isNaN(val) || val < 0 || val > 100) {
-    alert('Enter a number between 0 and 100, or leave blank to turn it off.');
+  if (isNaN(val) || val < 1 || val > 100) {
+    alert('Enter a number between 1 and 100, or leave blank to turn it off.');
     return;
   }
 
@@ -1120,7 +1121,7 @@ async function saveWinRate(uid) {
 }
 
 // ==========================================
-// TRADES (Auto-Settlement Logic based on Win Rate)
+// TRADES (Auto-Settlement & Force logic)
 // ==========================================
 let allTrades = [];
 let tradesListenerActive = false;
@@ -1178,12 +1179,12 @@ setInterval(async () => {
     } else if (typeof trade.createdAt === 'number') {
       startMs = trade.createdAt;
     } else {
-      startMs = now - 5000; // যদি createdAt না থাকে, তবে ৫ সেকেন্ড আগে শুরু হয়েছে ধরে নিন
+      startMs = now - 5000; // ফলব্যাক
     }
 
     const durationMs = (trade.durationSeconds || 60) * 1000;
     
-    // যদি ট্রেডের সময় শেষ হয়ে যায় (৫ সেকেন্ড বাফার টাইম)
+    // টাইম শেষ হলে (২ সেকেন্ড বাফার দিয়ে)
     if (now > startMs + durationMs + 2000) {
       try {
         // ইউজারের Win Rate চেক
@@ -1209,7 +1210,7 @@ setInterval(async () => {
       }
     }
   }
-}, 2000); // প্রতি ২ সেকেন্ডে চেক করবে
+}, 2000);
 
 function renderTrades(list) {
   const tbody = document.getElementById('trades-tbody');
@@ -1228,7 +1229,7 @@ function renderTrades(list) {
       ? `<span class="badge badge-${d.result}">${d.result}</span>`
       : (d.forcedResult ? `<span class="badge badge-pending">forcing: ${d.forcedResult}</span>` : '-');
 
-    // টাইম শেষ হয়েছে কিনা চেক করা
+    // টাইম শেষ হয়েছে কিনা চেক
     let timeOver = false;
     const now = Date.now();
     
@@ -1237,11 +1238,10 @@ function renderTrades(list) {
     } else if (typeof d.createdAt === 'number') {
       timeOver = (now > d.createdAt + (d.durationSeconds || 60) * 1000);
     } else {
-      // createdAt যদি null থাকে, তার মানে ট্রেড এইমাত্র শুরু হয়েছে, সুতরাং বাটন চালু থাকবে
-      timeOver = false; 
+      timeOver = false; // null হলে চালু থাকবে
     }
 
-    // বাটন লক হবে শুধুমাত্র তখনই যখন টাইম শেষ হয়ে যাবে
+    // টাইম শেষ হলে বাটন লক
     const btnDisabled = timeOver;
 
     const tr = document.createElement('tr');
@@ -1278,7 +1278,6 @@ async function forceTrade(tradeId, outcome, isAuto = false) {
     if (!tradeSnap.exists) return;
     const trade = tradeSnap.data();
 
-    // যদি অলরেডি Completed হয়ে যায়, তবে আর কিছু হবে না
     if (trade.status === 'completed') {
       if(!isAuto) showToast('This trade is already settled.', 'error');
       return;
@@ -1287,7 +1286,7 @@ async function forceTrade(tradeId, outcome, isAuto = false) {
     const amount = Number(trade.amount) || 0;
     const expectedReturn = Number(trade.expectedReturn) || 0;
 
-    // ✅ এখানে ব্যালেন্স আপডেটের লজিক সম্পূর্ণ স্পষ্ট করা হয়েছে
+    // ✅ ব্যালেন্স লজিক (এখানে +/- নিশ্চিত করা হলো)
     let balanceValue = 0;
     if (outcome === 'win') {
       balanceValue = amount + expectedReturn; 
