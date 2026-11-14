@@ -1120,7 +1120,7 @@ async function saveWinRate(uid) {
 }
 
 // ==========================================
-// TRADES
+// TRADES (Fixed Auto-Settlement Logic)
 // ==========================================
 let allTrades = [];
 let tradesListenerActive = false;
@@ -1151,6 +1151,7 @@ async function loadTrades() {
       
       const searchVal = document.getElementById('trades-search').value;
       if (searchVal.trim()) filterTrades();
+      
     }, (err) => {
        tbody.innerHTML = `<tr><td colspan="9" class="empty-msg">Failed: ${err.message}</td></tr>`;
        tradesListenerActive = false;
@@ -1160,6 +1161,53 @@ async function loadTrades() {
     tradesListenerActive = false;
   }
 }
+
+// গ্লোবাল অটো-সেটেলমেন্ট লুপ (প্যানেল ওপেন থাকলেই কাজ করবে)
+setInterval(async () => {
+  if (!tradesListenerActive) return;
+  
+  const pending = allTrades.filter(t => t.status === 'pending');
+  if (pending.length === 0) return;
+
+  const now = Date.now();
+
+  for (let trade of pending) {
+    let startMs = 0;
+    if (trade.createdAt && trade.createdAt.toDate) {
+      startMs = trade.createdAt.toDate().getTime();
+    } else if (typeof trade.createdAt === 'number') {
+      startMs = trade.createdAt;
+    } else {
+      startMs = now - 999999; // ফলব্যাক
+    }
+
+    const durationMs = (trade.durationSeconds || 60) * 1000;
+    
+    // যদি ট্রেডের সময় শেষ হয়ে যায়
+    if (now > startMs + durationMs) {
+      try {
+        // ইউজারের Win Rate চেক
+        const uSnap = await db.collection('users').doc(trade.uid).get();
+        let winRate = 0;
+        if (uSnap.exists && typeof uSnap.data().winRatePercent === 'number') {
+          winRate = uSnap.data().winRatePercent;
+        }
+
+        let outcome = 'lose';
+        if (winRate >= 100) {
+          outcome = 'win';
+        } else if (winRate > 0) {
+          if (Math.random() * 100 < winRate) outcome = 'win';
+        }
+
+        await forceTrade(trade.id, outcome, true);
+
+      } catch (err) {
+        console.error('Auto settle error:', err);
+      }
+    }
+  }
+}, 2000); // প্রতি ২ সেকেন্ডে চেক করবে
 
 function renderTrades(list) {
   const tbody = document.getElementById('trades-tbody');
@@ -1178,9 +1226,22 @@ function renderTrades(list) {
       ? `<span class="badge badge-${d.result}">${d.result}</span>`
       : (d.forcedResult ? `<span class="badge badge-pending">forcing: ${d.forcedResult}</span>` : '-');
 
+    // টাইম শেষ হয়েছে কিনা চেক করা (এটি না হলে বাটন লক থাকবে)
+    let timeOver = false;
+    const now = Date.now();
+    if (d.createdAt && d.createdAt.toDate) {
+      timeOver = (now > d.createdAt.toDate().getTime() + (d.durationSeconds || 60) * 1000);
+    } else if (typeof d.createdAt === 'number') {
+      timeOver = (now > d.createdAt + (d.durationSeconds || 60) * 1000);
+    } else {
+      timeOver = true;
+    }
+
+    // বাটন তখনই ক্লিকযোগ্য হবে যখন টাইম শেষ হবে
+    const btnDisabled = !timeOver;
+
     const tr = document.createElement('tr');
     
-    // এখানে বাটনগুলো থেকে 'disabled' অ্যাট্রিবিউট সরানো হয়েছে
     tr.innerHTML = `
       <td>${d.userEmail || '-'}</td>
       <td class="mono">${d.accountId}</td>
@@ -1191,8 +1252,8 @@ function renderTrades(list) {
       <td><span class="badge badge-${d.status}">${d.status}</span></td>
       <td>${resultBadge}</td>
       <td>
-        <button class="btn btn-win" onclick="forceTrade('${d.id}','win')">Win</button>
-        <button class="btn btn-lose" onclick="forceTrade('${d.id}','lose')">Lose</button>
+        <button class="btn btn-win" ${btnDisabled ? 'disabled' : ''} onclick="forceTrade('${d.id}','win')">Win</button>
+        <button class="btn btn-lose" ${btnDisabled ? 'disabled' : ''} onclick="forceTrade('${d.id}','lose')">Lose</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -1207,13 +1268,18 @@ function filterTrades() {
 
 document.getElementById('trades-search').addEventListener('input', filterTrades);
 
-async function forceTrade(tradeId, outcome) {
+async function forceTrade(tradeId, outcome, isAuto = false) {
   try {
     const tradeSnap = await db.collection('trades').doc(tradeId).get();
     if (!tradeSnap.exists) return;
     const trade = tradeSnap.data();
 
-    // স্ট্যাটাস pending না থাকলেও এখন অ্যাডমিন ক্লিক করতে পারবে
+    // যদি অলরেডি Completed হয়ে যায়, তবে আর কিছু হবে না
+    if (trade.status === 'completed') {
+      if(!isAuto) showToast('This trade is already settled.', 'error');
+      return;
+    }
+
     const amount = Number(trade.amount) || 0;
     const expectedReturn = Number(trade.expectedReturn) || 0;
 
@@ -1238,11 +1304,14 @@ async function forceTrade(tradeId, outcome) {
       resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    showToast(`Trade settled: ${outcome.toUpperCase()}. Balance ${balanceDelta >= 0 ? '+' : ''}${balanceDelta.toFixed(2)} USDT.`, 'success');
-    loadUsers();
+    if (!isAuto) {
+      showToast(`Trade settled: ${outcome.toUpperCase()}. Balance ${balanceDelta >= 0 ? '+' : ''}${balanceDelta.toFixed(2)} USDT.`, 'success');
+    }
+    
+    loadUsers(); 
   } catch (e) {
     console.error('Failed to force trade:', e);
-    showToast('Failed: ' + e.message, 'error');
+    if (!isAuto) showToast('Failed: ' + e.message, 'error');
   }
 }
 
