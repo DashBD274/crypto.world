@@ -720,7 +720,7 @@
       Logged in as: <span id="gate-current-email">-</span><br>
       Expected admin email: <span id="gate-expected-email">-</span>
     </div>
-    <button class="logout-btn" onclick="firebase.auth().signOut().then(()=>window.location.href='login.html')">Log Out</button>
+    <button class="logout-btn" onclick="firebase.auth().signOut().then(()=>window.location.href='admin-login.html')">Log Out</button>
   </div>
 </div>
 
@@ -737,7 +737,7 @@
       </div>
       <div class="header-actions">
         <div class="admin-chip"><span class="admin-dot"></span> Admin access</div>
-        <button class="logout-btn" onclick="firebase.auth().signOut().then(()=>window.location.href='login.html')">Log Out</button>
+        <button class="logout-btn" onclick="firebase.auth().signOut().then(()=>window.location.href='admin-login.html')">Log Out</button>
       </div>
     </header>
 
@@ -958,7 +958,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 firebase.auth().onAuthStateChanged(user => {
-  if (!user) { window.location.href = 'login.html'; return; }
+  if (!user) { window.location.href = 'admin-login.html'; return; }
 
   if ((user.email || '').toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
     document.getElementById('gate-current-email').textContent = user.email || '(no email)';
@@ -969,6 +969,7 @@ firebase.auth().onAuthStateChanged(user => {
 
   document.getElementById('admin-view').style.display = 'block';
   loadUsers();
+  loadTrades();
 });
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -978,7 +979,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.add('active');
     document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
 
-    if (btn.dataset.tab === 'trades') loadTrades();
     if (btn.dataset.tab === 'deposits') loadDeposits();
     if (btn.dataset.tab === 'withdrawals') loadWithdrawals();
     if (btn.dataset.tab === 'coins') loadCoins();
@@ -1121,7 +1121,7 @@ async function saveWinRate(uid) {
 }
 
 // ==========================================
-// TRADES (Auto-Settlement & Force logic)
+// TRADES (Auto-Settlement Logic based on Win Rate)
 // ==========================================
 let allTrades = [];
 let tradesListenerActive = false;
@@ -1184,7 +1184,7 @@ setInterval(async () => {
 
     const durationMs = (trade.durationSeconds || 60) * 1000;
     
-    // টাইম শেষ হলে (২ সেকেন্ড বাফার দিয়ে)
+    // যদি ট্রেডের সময় শেষ হয়ে যায় (৫ সেকেন্ড বাফার টাইম)
     if (now > startMs + durationMs + 2000) {
       try {
         // ইউজারের Win Rate চেক
@@ -1210,7 +1210,7 @@ setInterval(async () => {
       }
     }
   }
-}, 2000);
+}, 2000); // প্রতি ২ সেকেন্ডে চেক করবে
 
 function renderTrades(list) {
   const tbody = document.getElementById('trades-tbody');
@@ -1229,7 +1229,7 @@ function renderTrades(list) {
       ? `<span class="badge badge-${d.result}">${d.result}</span>`
       : (d.forcedResult ? `<span class="badge badge-pending">forcing: ${d.forcedResult}</span>` : '-');
 
-    // টাইম শেষ হয়েছে কিনা চেক
+    // টাইম শেষ হয়েছে কিনা চেক করা
     let timeOver = false;
     const now = Date.now();
     
@@ -1238,10 +1238,11 @@ function renderTrades(list) {
     } else if (typeof d.createdAt === 'number') {
       timeOver = (now > d.createdAt + (d.durationSeconds || 60) * 1000);
     } else {
-      timeOver = false; // null হলে চালু থাকবে
+      // createdAt যদি null থাকে, তার মানে ট্রেড এইমাত্র শুরু হয়েছে, সুতরাং বাটন চালু থাকবে
+      timeOver = false; 
     }
 
-    // টাইম শেষ হলে বাটন লক
+    // বাটন লক হবে শুধুমাত্র তখনই যখন টাইম শেষ হয়ে যাবে
     const btnDisabled = timeOver;
 
     const tr = document.createElement('tr');
@@ -1278,6 +1279,7 @@ async function forceTrade(tradeId, outcome, isAuto = false) {
     if (!tradeSnap.exists) return;
     const trade = tradeSnap.data();
 
+    // যদি অলরেডি Completed হয়ে যায়, তবে আর কিছু হবে না
     if (trade.status === 'completed') {
       if(!isAuto) showToast('This trade is already settled.', 'error');
       return;
@@ -1286,17 +1288,19 @@ async function forceTrade(tradeId, outcome, isAuto = false) {
     const amount = Number(trade.amount) || 0;
     const expectedReturn = Number(trade.expectedReturn) || 0;
 
-    // ✅ ব্যালেন্স লজিক (এখানে +/- নিশ্চিত করা হলো)
-    let balanceValue = 0;
+    // ✅ এখানে ব্যালেন্স আপডেটের সঠিক লজিক দেওয়া হলো
+    let balanceDelta = 0;
     if (outcome === 'win') {
-      balanceValue = amount + expectedReturn; 
+      // Win হলে স্টেক + প্রফিট যোগ হবে
+      balanceDelta = amount + expectedReturn;
     } else if (outcome === 'lose') {
-      balanceValue = -amount; 
+      // Lose হলে শুধুমাত্র স্টেকের সমান টাকা কাটা যাবে
+      balanceDelta = -amount;
     }
 
     // ১. ইউজারের ব্যালেন্স আপডেট
     await db.collection('users').doc(trade.uid).set({
-      balance: firebase.firestore.FieldValue.increment(balanceValue)
+      balance: firebase.firestore.FieldValue.increment(balanceDelta)
     }, { merge: true });
 
     // ২. ট্রেড ডকুমেন্ট আপডেট
@@ -1309,7 +1313,7 @@ async function forceTrade(tradeId, outcome, isAuto = false) {
     });
 
     if (!isAuto) {
-      showToast(`Trade settled: ${outcome.toUpperCase()}. Balance ${balanceValue >= 0 ? '+' : ''}${balanceValue.toFixed(2)} USDT.`, 'success');
+      showToast(`Trade settled: ${outcome.toUpperCase()}. Balance ${balanceDelta >= 0 ? '+' : ''}${balanceDelta.toFixed(2)} USDT.`, 'success');
     }
     
     loadUsers(); 
