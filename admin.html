@@ -1288,14 +1288,13 @@ async function forceTrade(tradeId, outcome, isAuto = false) {
     const amount = Number(trade.amount) || 0;
     const expectedReturn = Number(trade.expectedReturn) || 0;
 
-    // ✅ এখানে ব্যালেন্স আপডেটের সঠিক লজিক দেওয়া হলো
+    // ✅ আপনার দেওয়া নতুন লজিক অনুযায়ী ব্যালেন্স আপডেট
+    // Win হলে শুধুমাত্র লাভের টাকা যোগ হবে, আর Lose হলে পুরো স্টেক কাটা যাবে
     let balanceDelta = 0;
     if (outcome === 'win') {
-      // Win হলে স্টেক + প্রফিট যোগ হবে
-      balanceDelta = amount + expectedReturn;
+      balanceDelta = expectedReturn; 
     } else if (outcome === 'lose') {
-      // Lose হলে শুধুমাত্র স্টেকের সমান টাকা কাটা যাবে
-      balanceDelta = -amount;
+      balanceDelta = -amount; 
     }
 
     // ১. ইউজারের ব্যালেন্স আপডেট
