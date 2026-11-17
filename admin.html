@@ -1288,11 +1288,12 @@ async function forceTrade(tradeId, outcome, isAuto = false) {
     const amount = Number(trade.amount) || 0;
     const expectedReturn = Number(trade.expectedReturn) || 0;
 
-    // ✅ আপনার দেওয়া নতুন লজিক অনুযায়ী ব্যালেন্স আপডেট
-    // Win হলে শুধুমাত্র লাভের টাকা যোগ হবে, আর Lose হলে পুরো স্টেক কাটা যাবে
+    // ✅ ব্যালেন্স আপডেটের সঠিক লজিক
+    // Win হলে: Stake + Profit যোগ হবে
+    // Lose হলে: Stake বিয়োগ হবে
     let balanceDelta = 0;
     if (outcome === 'win') {
-      balanceDelta = expectedReturn; 
+      balanceDelta = amount + expectedReturn; 
     } else if (outcome === 'lose') {
       balanceDelta = -amount; 
     }
